@@ -1,0 +1,78 @@
+block = puncBraceLeft, statements, puncBraceRight
+  | puncBraceLeft, puncBraceRight;
+
+statements = statment, puncSemi, statements
+  | statement, puncSemi;
+
+statement = block
+  | functionDeclaration
+  | bindMutDeclaration
+  | bindDeclaration
+  | expr;
+
+bindMutDeclaration = keywordLet, keywordMut, identifier, opAssign, expr
+  | keywordLet, keywordMut, identifier;
+
+bindDeclaration = keywordLet, identifier, opAssign, expr
+  | keywordLet, identifier;
+
+functionDeclaration = keywordFn, identifier, puncParrenLeft, functionDeclarationParams, puncParrenRight, block
+  | keywordFn, identifier, puncParrenLeft, puncParrenRight, block;
+
+functionDeclarationParams = identifier, puncComma, functionDeclarationParams
+  | identifier
+
+expr = tupleExpr;
+
+tupleExpr = assignExpr, puncComma, tupleExpr
+  | assignExpr, puncComma
+  | assignExpr;
+
+assignExpr = addExpr, puncAssign, assignExpr
+  | orExpr;
+
+orExpr = andExpr, opOr, orExpr
+  | andExpr;
+
+andExpr = gtExpr, opAnd, andExpr
+  | gtExpr;
+
+gtExpr = eqExpr, opGt, gtExpr
+  | eqExpr, opGe, gtExpr
+  | eqExpr, opLt, gtExpr
+  | eqExpr, opLe, gtExpr
+  | eqExpr;
+
+eqExpr = addExpr, opEq, eqExpr
+  | addExpr, opNe, eqExpr
+  | addExpr;
+
+addExpr = mulExpr, opAdd, addExpr
+  | mulExpr, opSub, addExpr
+  | mulExpr;
+
+mulExpr = negExpr, opMul, mulExpr
+  | negExpr, opDiv, mulExpr
+  | negExpr, opMod, mulExpr
+  | negExpr;
+
+negExpr = opSub, negExpr
+  | puncBang, negExpr;
+
+indexExpr = parrenExpr, puncBracketLeft, indexExpr, puncBracketRight
+  | parrenExpr, puncParrenLeft, listExpr, puncParrenRight
+  | parrenExpr, puncDot, indexExpr
+  | parrenExpr;
+
+parrenExpr = termExpr
+  | puncParrenLeft, expr, puncParrenRight;
+
+termExpr = literalExpr
+  | identifierExpr;
+
+identifierExpr = identifier;
+
+literalExpr = literalInt
+  | literalFloat;
+
+literal
