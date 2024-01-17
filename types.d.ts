@@ -11,7 +11,7 @@ export interface NodeIdentifier {
 export interface NodeFunctionDeclaration {
   type: 'functionDeclaration'
   identifier: NodeIdentifier
-  params: NodeIdentifier[]
+  params: NodeUnknown[]
   block: NodeBlock
 }
 

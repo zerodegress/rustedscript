@@ -16,11 +16,8 @@ bindMutDeclaration = keywordLet, keywordMut, identifier, opAssign, expr
 bindDeclaration = keywordLet, identifier, opAssign, expr
   | keywordLet, identifier;
 
-functionDeclaration = keywordFn, identifier, puncParrenLeft, functionDeclarationParams, puncParrenRight, block
+functionDeclaration = keywordFn, identifier, puncParrenLeft, tupleExpr, puncParrenRight, block
   | keywordFn, identifier, puncParrenLeft, puncParrenRight, block;
-
-functionDeclarationParams = identifier, puncComma, functionDeclarationParams
-  | identifier
 
 expr = tupleExpr;
 

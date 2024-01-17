@@ -136,30 +136,6 @@ function ruleBlock(tokens) {
 
 /**
  * @param {import("./types").TokenUnknown[]} tokens
- * @returns {[import("./types").TokenUnknown[], import("./types").NodeIdentifier[]]?}
- */
-function ruleFunctionDeclarationParams(tokens) {
-  const res = createAltRule(
-    createSeqRule(
-      ruleIdentifierExpr,
-      createConsTokenRule('puncComma'),
-      ruleFunctionDeclarationParams,
-    ),
-    ruleIdentifierExpr,
-  )(tokens)
-  return (
-    res && [
-      res[0],
-      (res[1] instanceof Array ? res[1] : [res[1]])
-        .filter(x => typeof x === 'object')
-        .map(x => (!(x instanceof Array) ? [x] : x))
-        .reduce((x, y) => [x, ...y]),
-    ]
-  )
-}
-
-/**
- * @param {import("./types").TokenUnknown[]} tokens
  * @returns {[import("./types").TokenUnknown[], import("./types").NodeFunctionDeclaration]?}
  */
 function ruleFunctionDeclaration(tokens) {
@@ -167,7 +143,7 @@ function ruleFunctionDeclaration(tokens) {
     createConsTokenRule('keywordFn'),
     ruleIdentifierExpr,
     createConsTokenRule('puncParrenLeft'),
-    createOptRule(ruleFunctionDeclarationParams),
+    createOptRule(ruleTupleExpr),
     createConsTokenRule('puncParrenRight'),
     ruleBlock,
   )(tokens)
@@ -177,7 +153,7 @@ function ruleFunctionDeclaration(tokens) {
       {
         type: 'functionDeclaration',
         identifier: res[1][1],
-        params: res[1][3] || [],
+        params: res[1][3]?.exprs || [res[1][3]] || [],
         block: res[1][5],
       },
     ]
