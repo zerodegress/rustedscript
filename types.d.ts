@@ -15,14 +15,9 @@ export interface NodeFunctionDeclaration {
   block: NodeBlock
 }
 
-export interface NodeStatement {
-  type: 'statement'
-  expr: NodeUnknown
-}
-
 export interface NodeBlock {
   type: 'block'
-  statements: NodeStatement[]
+  statements: NodeUnknown[]
 }
 
 export interface NodeAssign {
@@ -160,7 +155,6 @@ export interface NodeOr {
 }
 
 export type NodeUnknown =
-  | NodeStatement
   | NodeBlock
   | NodeFunctionDeclaration
   | NodeIdentifier

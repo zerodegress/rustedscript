@@ -1,14 +1,14 @@
 block = puncBraceLeft, statements, puncBraceRight
   | puncBraceLeft, puncBraceRight;
 
-statements = statment, puncSemi, statements
-  | statement, puncSemi;
+statements = statment, statements
+  | statement;
 
 statement = block
   | functionDeclaration
-  | bindMutDeclaration
-  | bindDeclaration
-  | expr;
+  | bindMutDeclaration, puncSemi
+  | bindDeclaration, puncSemi
+  | expr, puncSemi;
 
 bindMutDeclaration = keywordLet, keywordMut, identifier, opAssign, expr
   | keywordLet, keywordMut, identifier;

@@ -84,47 +84,31 @@ function createConsTokenRule(type) {
 
 /**
  * @param {import("./types").TokenUnknown[]} tokens
- * @returns {[import("./types").TokenUnknown[], import("./types").NodeStatement]?}
+ * @returns {[import("./types").TokenUnknown[], import("./types").NodeUnknown]?}
  */
 function ruleStatement(tokens) {
   const res = createAltRule(
-    ruleBlock,
-    ruleFunctionDeclaration,
-    ruleBindDeclaration,
-    ruleExpr,
+    createSeqRule(ruleBlock),
+    createSeqRule(ruleFunctionDeclaration),
+    createSeqRule(ruleBindDeclaration, createConsTokenRule('puncSemi')),
+    createSeqRule(ruleExpr, createConsTokenRule('puncSemi')),
   )(tokens)
-  if (res) {
-    return [
-      res[0],
-      {
-        type: 'statement',
-        expr: res[1],
-      },
-    ]
-  }
-  return null
+  return res && [res[0], res[1][0]]
 }
 
 /**
  * @param {import("./types").TokenUnknown[]} tokens
- * @returns {[import("./types").TokenUnknown[], import("./types").NodeStatement[]]?}
+ * @returns {[import("./types").TokenUnknown[], import("./types").NodeUnknown[]]?}
  */
 function ruleStatements(tokens) {
   const res = createAltRule(
-    createSeqRule(
-      ruleStatement,
-      createConsTokenRule('puncSemi'),
-      ruleStatements,
-    ),
-    ruleStatement,
+    createSeqRule(ruleStatement, ruleStatements),
+    createSeqRule(ruleStatement),
   )(tokens)
   return (
     res && [
       res[0],
-      (res[1] instanceof Array ? res[1] : [res[1]])
-        .filter(x => typeof x === 'object')
-        .map(x => (!(x instanceof Array) ? [x] : x))
-        .reduce((x, y) => [x, ...y]),
+      res[1].length >= 2 ? [res[1][0], ...res[1][2]] : [res[1][0]],
     ]
   )
 }
