@@ -158,6 +158,11 @@ export interface NodeLiteralString {
   content: string
 }
 
+export interface NodeParren {
+  type: 'parren'
+  expr: NodeUnknown
+}
+
 export type NodeUnknown =
   | NodeBlock
   | NodeFunctionDeclaration
@@ -188,6 +193,7 @@ export type NodeUnknown =
   | NodeAnd
   | NodeOr
   | NodeLiteralString
+  | NodeParren
 
 export interface TokenKeywordLet {
   type: 'keywordLet'

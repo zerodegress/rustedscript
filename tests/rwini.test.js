@@ -13,5 +13,10 @@ describe('compile', () => {
         setUnitMemory: 'a=memory.b',
       },
     })
+    expect(compile(parse(tokenize('fn a() { a = b + c - 1; }')))).toEqual({
+      hiddenAction_a: {
+        setUnitMemory: 'a=memory.b+memory.c-1',
+      },
+    })
   })
 })
