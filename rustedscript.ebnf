@@ -5,18 +5,16 @@ statements = statment, statements
   | statement;
 
 statement = block
-  | functionDeclaration
   | expr, [puncSemi];
 
 annotation = puncAt, identifier, puncParrenLeft, [tupleExpr], puncParrenRight
   | puncAt, identifier;
 
-functionDeclaration = keywordFn, identifier, puncParrenLeft, tupleExpr, puncParrenRight, block
-  | keywordFn, identifier, puncParrenLeft, puncParrenRight, block;
+functionDeclaration = keywordFn, identifier, puncParrenLeft, [tupleExpr], puncParrenRight, block;
 
 expr = bindDeclarationExpr;
 
-bindDeclarationExpr = keywordLet, [keywordMut], bindDeclarationExpr
+bindDeclarationExpr = keywordLet, [keywordMut], tupleExpr
   | tupleExpr;
 
 tupleExpr = annotationExpr, puncComma, tupleExpr

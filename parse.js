@@ -210,7 +210,7 @@ const ruleBindDeclarationExprInternal = createAltRule(
   createSeqRule(
     createConsTokenRule('keywordLet'),
     createOptRule(createConsTokenRule('keywordMut')),
-    ruleBindDeclarationExpr,
+    ruleTupleExpr,
   ),
   createSeqRule(ruleTupleExpr),
 )
