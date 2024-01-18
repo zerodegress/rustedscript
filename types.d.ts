@@ -411,7 +411,7 @@ export interface RwIniSection {
 }
 
 export interface RwiniCompileContext {
-  currentName?: string
+  currentName: string
   idMap?: Record<string, string>
   preserveAssignLeft?: boolean
 }
