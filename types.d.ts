@@ -369,3 +369,9 @@ export interface RwIni {
 export interface RwIniSection {
   [propKey: string]: string
 }
+
+export interface RwiniCompileContext {
+  currentName?: string
+  idMap?: Record<string, string>
+  preserveAssignLeft?: boolean
+}
