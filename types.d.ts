@@ -153,6 +153,11 @@ export interface NodeOr {
   right: NodeUnknown
 }
 
+export interface NodeLiteralString {
+  type: 'literalString'
+  content: string
+}
+
 export type NodeUnknown =
   | NodeBlock
   | NodeFunctionDeclaration
@@ -182,6 +187,7 @@ export type NodeUnknown =
   | NodeNe
   | NodeAnd
   | NodeOr
+  | NodeLiteralString
 
 export interface TokenKeywordLet {
   type: 'keywordLet'
@@ -311,6 +317,11 @@ export interface TokenOpOr {
   type: 'opOr'
 }
 
+export interface TokenLiteralString {
+  type: 'literalString'
+  content: string
+}
+
 export type TokenUnknown =
   | TokenKeywordFn
   | TokenKeywordLet
@@ -343,6 +354,7 @@ export type TokenUnknown =
   | TokenOpNe
   | TokenOpOr
   | TokenOpAnd
+  | TokenLiteralString
 
 export interface RwIni {
   [secName: string]: RwIniSection

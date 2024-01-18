@@ -72,6 +72,15 @@ describe('parse', () => {
     ])
   })
 
+  test('literal', () => {
+    expect(parse(tokenize('"abc";'))).toEqual([
+      {
+        type: 'literalString',
+        content: 'abc',
+      },
+    ])
+  })
+
   test('bind', () => {
     expect(parse(tokenize('let a = 1;'))).toEqual([
       {

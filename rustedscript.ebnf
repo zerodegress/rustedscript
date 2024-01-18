@@ -66,6 +66,7 @@ termExpr = literalExpr
 identifierExpr = identifier;
 
 literalExpr = literalInt
-  | literalFloat;
+  | literalFloat
+  | literalString;
 
 literal

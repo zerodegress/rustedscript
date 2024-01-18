@@ -4,6 +4,9 @@ import { tokenize } from '../token'
 describe('tokenize', () => {
   test('simple', () => {
     expect(tokenize('')).toEqual([])
+    expect(tokenize('"abc"')).toEqual([
+      { type: 'literalString', content: '"abc"' },
+    ])
     expect(tokenize('abc')).toEqual([{ type: 'identifier', content: 'abc' }])
     expect(tokenize('fn abc(){1}')).toEqual([
       { type: 'keywordFn' },

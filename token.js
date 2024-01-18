@@ -1,3 +1,5 @@
+export class TokenizeError extends Error {}
+
 /**
  * @type {[import("./types").TokenUnknown['type'], RegExp][]}
  */
@@ -44,6 +46,7 @@ const TOKENS_REGEX = [
     'identifier',
     /^[^-0-9\(\)\[\]\{\}\\\/\.,<>;:'"\\|`~!@#\$%^&\*\?\+=\s][^-\(\)\[\]\{\}\\\/\.,<>;:'"\\|`~!@#\$%^&\*\?\+=\s]*/,
   ],
+  ['literalString', /^("([^"]|(\\"))+?")|('([^']|(\\'))+?')/],
   ['unexpected', /^.+/],
 ]
 
@@ -67,8 +70,11 @@ export function tokenize(src) {
           case 'identifier':
           case 'literalInt':
           case 'literalFloat':
+          case 'literalString':
             token.content = res[0]
             break
+          case 'unexpected':
+            throw new TokenizeError('unexpected token')
         }
         tokens.push(token)
         src = src.replace(regex, '')

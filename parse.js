@@ -633,12 +633,35 @@ function ruleIdentifierExpr(tokens) {
  * @returns {[import("./types").TokenUnknown[], import("./types").NodeUnknown]?}
  */
 function ruleLiteralExpr(tokens) {
-  let res
-  res = ruleLiteralNumber(tokens)
-  if (res) {
-    return [res[0], res[1]]
+  const res = createAltRule(ruleLiteralNumber, ruleLiteralString)(tokens)
+  return res && [res[0], res[1]]
+}
+
+/**
+ * @param {import("./types").TokenUnknown[]} tokens
+ * @returns {[import("./types").TokenUnknown[], import("./types").NodeUnknown]?}
+ */
+function ruleLiteralString(tokens) {
+  if (tokens.length <= 0) {
+    throw new ParseError('unexpected eof')
   }
-  return null
+  switch (tokens[0].type) {
+    case 'literalString':
+      return [
+        tokens.slice(1),
+        {
+          type: 'literalString',
+          content: tokens[0].content
+            .replace(/^("|')/, '')
+            .replace(/("|')$/, '')
+            .replaceAll('\\\\', '\\')
+            .replaceAll(/\\"/g, '"')
+            .replaceAll(/\\'/g, "'"),
+        },
+      ]
+    default:
+      return null
+  }
 }
 
 /**
