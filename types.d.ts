@@ -173,6 +173,11 @@ export interface NodeAnnotation {
   params: NodeUnknown[]
 }
 
+export interface NodeLiteralBool {
+  type: 'literalBool'
+  val: bool
+}
+
 export type NodeUnknown =
   | NodeBlock
   | NodeFunctionDeclaration
@@ -205,6 +210,7 @@ export type NodeUnknown =
   | NodeLiteralString
   | NodeParren
   | NodeAnnotation
+  | NodeLiteralBool
 
 export interface TokenKeywordLet {
   type: 'keywordLet'
@@ -353,6 +359,11 @@ export interface TokenBlockComment {
   content: string
 }
 
+export interface TokenLiteralBool {
+  type: 'literalBool'
+  content: string
+}
+
 export type TokenUnknown =
   | TokenKeywordFn
   | TokenKeywordLet
@@ -389,6 +400,7 @@ export type TokenUnknown =
   | TokenPuncAt
   | TokenLineComment
   | TokenBlockComment
+  | TokenLiteralBool
 
 export interface RwIni {
   [secName: string]: RwIniSection

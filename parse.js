@@ -709,8 +709,33 @@ function ruleIdentifierExpr(tokens) {
  * @returns {[import("./types").TokenUnknown[], import("./types").NodeUnknown]?}
  */
 function ruleLiteralExpr(tokens) {
-  const res = createAltRule(ruleLiteralNumber, ruleLiteralString)(tokens)
+  const res = createAltRule(
+    ruleLiteralBool,
+    ruleLiteralNumber,
+    ruleLiteralString,
+  )(tokens)
   return res && [res[0], res[1]]
+}
+/**
+ * @param {import("./types").TokenUnknown[]} tokens
+ * @returns {[import("./types").TokenUnknown[], import("./types").NodeLiteralBool]?}
+ */
+function ruleLiteralBool(tokens) {
+  if (tokens.length <= 0) {
+    throw new ParseError('unexpected eof')
+  }
+  switch (tokens[0].type) {
+    default:
+      return null
+    case 'literalBool':
+      return [
+        tokens.slice(1),
+        {
+          type: 'literalBool',
+          val: tokens[0].content == 'true' ? true : false,
+        },
+      ]
+  }
 }
 
 /**

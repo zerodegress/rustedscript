@@ -29,6 +29,10 @@ const TOKENS_REGEX = [
     'keywordMut',
     /^mut((?=[\(\)\[\]\{\}\\\/\.,<>;:'"\\|`~!@#\$%^&\*\?\+=\s])|$)/,
   ],
+  [
+    'keywordMut',
+    /^mut((?=[\(\)\[\]\{\}\\\/\.,<>;:'"\\|`~!@#\$%^&\*\?\+=\s])|$)/,
+  ],
   ['opGt', /^>/],
   ['opGe', /^>=/],
   ['opLt', /^</],
@@ -45,6 +49,10 @@ const TOKENS_REGEX = [
   ['opMod', /^%/],
   ['literalFloat', /^[0-9]+\.[0-9]+/],
   ['literalInt', /^[0-9]+/],
+  [
+    'literalBool',
+    /^(true|false)((?=[\(\)\[\]\{\}\\\/\.,<>;:'"\\|`~!@#\$%^&\*\?\+=\s])|$)/,
+  ],
   [
     'identifier',
     /^[^-0-9\(\)\[\]\{\}\\\/\.,<>;:'"\\|`~!@#\$%^&\*\?\+=\s][^-\(\)\[\]\{\}\\\/\.,<>;:'"\\|`~!@#\$%^&\*\?\+=\s]*/,
@@ -74,6 +82,7 @@ export function tokenize(src) {
           case 'literalInt':
           case 'literalFloat':
           case 'literalString':
+          case 'literalBool':
             token.content = res[0]
             break
           case 'lineComment':

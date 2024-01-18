@@ -83,6 +83,12 @@ describe('parse', () => {
         content: 'abc',
       },
     ])
+    expect(parse(tokenize('true'))).toEqual([
+      {
+        type: 'literalBool',
+        val: true,
+      },
+    ])
   })
 
   test('bind', () => {

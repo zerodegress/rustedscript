@@ -35,6 +35,10 @@ describe('tokenize', () => {
     ])
   })
 
+  test('literal', () => {
+    expect(tokenize('true')).toEqual([{ type: 'literalBool', content: 'true' }])
+  })
+
   test('comment', () => {
     expect(tokenize('// abc')).toEqual([])
   })
