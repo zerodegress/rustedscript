@@ -1,3 +1,4 @@
+@action
 fn test() {
   a = a + 1;
 }
