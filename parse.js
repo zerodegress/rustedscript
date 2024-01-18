@@ -198,12 +198,16 @@ function ruleFunctionDeclaration(tokens) {
   )
 }
 
+const ruleExprInternal = createAltRule(
+  ruleFunctionDeclaration,
+  ruleBindDeclarationExpr,
+)
 /**
  * @param {import("./types").TokenUnknown[]} tokens
  * @returns {[import("./types").TokenUnknown[], import("./types").NodeUnknown]?}
  */
 function ruleExpr(tokens) {
-  return ruleBindDeclarationExpr(tokens)
+  return ruleExprInternal(tokens)
 }
 
 const ruleBindDeclarationExprInternal = createAltRule(

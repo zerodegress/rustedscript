@@ -12,7 +12,10 @@ annotation = puncAt, identifier, puncParrenLeft, [tupleExpr], puncParrenRight
 
 functionDeclaration = keywordFn, identifier, puncParrenLeft, [tupleExpr], puncParrenRight, block;
 
-expr = bindDeclarationExpr;
+expr = functionDeclarationExpr
+  | bindDeclarationExpr;
+
+functionDeclarationExpr = functionDeclaration;
 
 bindDeclarationExpr = keywordLet, [keywordMut], tupleExpr
   | tupleExpr;
