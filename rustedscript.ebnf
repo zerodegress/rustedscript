@@ -14,17 +14,16 @@ annotation = puncAt, identifier, puncParrenLeft, [tupleExpr], puncParrenRight
 functionDeclaration = keywordFn, identifier, puncParrenLeft, tupleExpr, puncParrenRight, block
   | keywordFn, identifier, puncParrenLeft, puncParrenRight, block;
 
-expr = tupleExpr;
+expr = bindDeclarationExpr;
 
-annotationExpr = annotation, annotationExpr
+bindDeclarationExpr = keywordLet, [keywordMut], bindDeclarationExpr
   | tupleExpr;
 
-tupleExpr = bindDeclarationExpr, puncComma, tupleExpr
-  | bindDeclarationExpr, puncComma
-  | bindDeclarationExpr;
+tupleExpr = annotationExpr, puncComma, tupleExpr
+  | annotationExpr, puncComma
+  | annotationExpr;
 
-bindDeclarationExpr = keywordLet, [keywordMut], assignExpr
-  | keywordLet, assignExpr
+annotationExpr = annotation, annotationExpr
   | assignExpr;
 
 assignExpr = addExpr, puncAssign, assignExpr

@@ -84,17 +84,17 @@ describe('parse', () => {
   test('bind', () => {
     expect(parse(tokenize('let a = 1;'))).toEqual([
       {
-        type: 'assign',
-        left: {
-          type: 'bindDeclaration',
-          bind: {
+        type: 'bindDeclaration',
+        bind: {
+          type: 'assign',
+          left: {
             type: 'identifier',
             content: 'a',
           },
-        },
-        right: {
-          type: 'literalInt',
-          content: '1',
+          right: {
+            type: 'literalInt',
+            content: '1',
+          },
         },
       },
     ])

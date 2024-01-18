@@ -203,7 +203,41 @@ function ruleFunctionDeclaration(tokens) {
  * @returns {[import("./types").TokenUnknown[], import("./types").NodeUnknown]?}
  */
 function ruleExpr(tokens) {
-  return ruleTupleExpr(tokens)
+  return ruleBindDeclarationExpr(tokens)
+}
+
+const ruleBindDeclarationExprInternal = createAltRule(
+  createSeqRule(
+    createConsTokenRule('keywordLet'),
+    createOptRule(createConsTokenRule('keywordMut')),
+    ruleBindDeclarationExpr,
+  ),
+  createSeqRule(ruleTupleExpr),
+)
+/**
+ * @param {import("./types").TokenUnknown[]} tokens
+ * @returns {[import("./types").TokenUnknown[], import("./types").NodeUnknown]?}
+ */
+function ruleBindDeclarationExpr(tokens) {
+  const res = ruleBindDeclarationExprInternal(tokens)
+  return (
+    res && [
+      res[0],
+      (() => {
+        switch (res[1].length) {
+          case 3: {
+            return {
+              type: 'bindDeclaration',
+              bind: res[1][2],
+              mutable: res[1][1] ? true : undefined,
+            }
+          }
+          case 1:
+            return res[1][0]
+        }
+      })(),
+    ]
+  )
 }
 
 /**
@@ -278,11 +312,11 @@ function ruleAnnotationExpr(tokens) {
 function ruleAssignExpr(tokens) {
   const res = createAltRule(
     createSeqRule(
-      ruleBindDeclaration,
+      ruleOrExpr,
       createAltRule(createConsTokenRule('opAssign')),
       ruleAssignExpr,
     ),
-    ruleBindDeclaration,
+    ruleOrExpr,
   )(tokens)
   return (
     res && [
@@ -299,39 +333,6 @@ function ruleAssignExpr(tokens) {
             right: res[1][2],
           }
         : res[1],
-    ]
-  )
-}
-
-/**
- * @param {import("./types").TokenUnknown[]} tokens
- * @returns {[import("./types").TokenUnknown[], import("./types").NodeUnknown]?}
- */
-function ruleBindDeclaration(tokens) {
-  const res = createAltRule(
-    createSeqRule(
-      createConsTokenRule('keywordLet'),
-      createOptRule(createConsTokenRule('keywordMut')),
-      ruleBindDeclaration,
-    ),
-    createSeqRule(ruleOrExpr),
-  )(tokens)
-  return (
-    res && [
-      res[0],
-      (() => {
-        switch (res[1].length) {
-          case 3: {
-            return {
-              type: 'bindDeclaration',
-              bind: res[1][2],
-              mutable: res[1][1] ? true : undefined,
-            }
-          }
-          case 1:
-            return res[1][0]
-        }
-      })(),
     ]
   )
 }
