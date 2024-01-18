@@ -344,3 +344,11 @@ export type TokenUnknown =
   | TokenOpNe
   | TokenOpOr
   | TokenOpAnd
+
+export interface RwIni {
+  [secName: string]: RwIniSection
+}
+
+export interface RwIniSection {
+  [propKey: string]: string
+}
