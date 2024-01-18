@@ -1,5 +1,6 @@
 import { describe, expect, test } from '@jest/globals'
 import { tokenize } from '../token'
+
 describe('tokenize', () => {
   test('simple', () => {
     expect(tokenize('')).toEqual([])
