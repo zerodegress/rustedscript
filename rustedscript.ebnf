@@ -6,23 +6,19 @@ statements = statment, statements
 
 statement = block
   | functionDeclaration
-  | bindMutDeclaration, puncSemi
-  | bindDeclaration, puncSemi
   | expr, puncSemi;
-
-bindMutDeclaration = keywordLet, keywordMut, identifier, opAssign, expr
-  | keywordLet, keywordMut, identifier;
-
-bindDeclaration = keywordLet, identifier, opAssign, expr
-  | keywordLet, identifier;
 
 functionDeclaration = keywordFn, identifier, puncParrenLeft, tupleExpr, puncParrenRight, block
   | keywordFn, identifier, puncParrenLeft, puncParrenRight, block;
 
 expr = tupleExpr;
 
-tupleExpr = assignExpr, puncComma, tupleExpr
-  | assignExpr, puncComma
+tupleExpr = bindDeclarationExpr, puncComma, tupleExpr
+  | bindDeclarationExpr, puncComma
+  | bindDeclarationExpr;
+
+bindDeclarationExpr = keywordLet, [keywordMut], assignExpr
+  | keywordLet, assignExpr
   | assignExpr;
 
 assignExpr = addExpr, puncAssign, assignExpr

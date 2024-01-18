@@ -5,7 +5,7 @@ export interface WithRange {
 
 export interface NodeIdentifier {
   type: 'identifier'
-  identifier: string
+  content: string
 }
 
 export interface NodeFunctionDeclaration {
@@ -58,8 +58,7 @@ export interface NodeMod {
 
 export interface NodeBindDeclaration {
   type: 'bindDeclaration'
-  identifier: NodeIdentifier
-  init?: NodeUnknown
+  bind: NodeUnknown
   mutable?: true
 }
 

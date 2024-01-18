@@ -9,7 +9,7 @@ describe('parse', () => {
         type: 'add',
         left: {
           type: 'identifier',
-          identifier: 'a',
+          content: 'a',
         },
         right: {
           type: 'literalInt',
@@ -23,7 +23,7 @@ describe('parse', () => {
         statements: [
           {
             type: 'identifier',
-            identifier: 'k',
+            content: 'k',
           },
         ],
       },
@@ -35,12 +35,12 @@ describe('parse', () => {
           type: 'call',
           fn: {
             type: 'identifier',
-            identifier: 'a',
+            content: 'a',
           },
           params: [
             {
               type: 'identifier',
-              identifier: 'b',
+              content: 'b',
             },
           ],
         },
@@ -51,12 +51,12 @@ describe('parse', () => {
         type: 'functionDeclaration',
         identifier: {
           type: 'identifier',
-          identifier: 'a',
+          content: 'a',
         },
         params: [
           {
             type: 'identifier',
-            identifier: 'b',
+            content: 'b',
           },
         ],
         block: {
@@ -64,9 +64,28 @@ describe('parse', () => {
           statements: [
             {
               type: 'identifier',
-              identifier: 'k',
+              content: 'k',
             },
           ],
+        },
+      },
+    ])
+  })
+
+  test('bind', () => {
+    expect(parse(tokenize('let a = 1;'))).toEqual([
+      {
+        type: 'assign',
+        left: {
+          type: 'bindDeclaration',
+          bind: {
+            type: 'identifier',
+            content: 'a',
+          },
+        },
+        right: {
+          type: 'literalInt',
+          content: '1',
         },
       },
     ])

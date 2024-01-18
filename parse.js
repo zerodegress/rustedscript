@@ -90,7 +90,6 @@ function ruleStatement(tokens) {
   const res = createAltRule(
     createSeqRule(ruleBlock),
     createSeqRule(ruleFunctionDeclaration),
-    createSeqRule(ruleBindDeclaration, createConsTokenRule('puncSemi')),
     createSeqRule(ruleExpr, createConsTokenRule('puncSemi')),
   )(tokens)
   return res && [res[0], res[1][0]]
@@ -164,30 +163,6 @@ function ruleFunctionDeclaration(tokens) {
  * @param {import("./types").TokenUnknown[]} tokens
  * @returns {[import("./types").TokenUnknown[], import("./types").NodeUnknown]?}
  */
-function ruleBindDeclaration(tokens) {
-  const res = createSeqRule(
-    createConsTokenRule('keywordLet'),
-    createOptRule(createConsTokenRule('keywordMut')),
-    ruleIdentifierExpr,
-    createOptRule(createSeqRule(createConsTokenRule('opAssign'), ruleExpr)),
-  )(tokens)
-  return (
-    res && [
-      res[0],
-      {
-        type: 'bindDeclaration',
-        identifier: res[1][2],
-        mutable: res[1][1] ? true : undefined,
-        init: res[1][3] ? res[1][3][1] : undefined,
-      },
-    ]
-  )
-}
-
-/**
- * @param {import("./types").TokenUnknown[]} tokens
- * @returns {[import("./types").TokenUnknown[], import("./types").NodeUnknown]?}
- */
 function ruleExpr(tokens) {
   return ruleTupleExpr(tokens)
 }
@@ -236,11 +211,11 @@ function ruleTupleExpr(tokens) {
 function ruleAssignExpr(tokens) {
   const res = createAltRule(
     createSeqRule(
-      ruleOrExpr,
+      ruleBindDeclaration,
       createAltRule(createConsTokenRule('opAssign')),
       ruleAssignExpr,
     ),
-    ruleOrExpr,
+    ruleBindDeclaration,
   )(tokens)
   return (
     res && [
@@ -257,6 +232,39 @@ function ruleAssignExpr(tokens) {
             right: res[1][2],
           }
         : res[1],
+    ]
+  )
+}
+
+/**
+ * @param {import("./types").TokenUnknown[]} tokens
+ * @returns {[import("./types").TokenUnknown[], import("./types").NodeUnknown]?}
+ */
+function ruleBindDeclaration(tokens) {
+  const res = createAltRule(
+    createSeqRule(
+      createConsTokenRule('keywordLet'),
+      createOptRule(createConsTokenRule('keywordMut')),
+      ruleBindDeclaration,
+    ),
+    createSeqRule(ruleOrExpr),
+  )(tokens)
+  return (
+    res && [
+      res[0],
+      (() => {
+        switch (res[1].length) {
+          case 3: {
+            return {
+              type: 'bindDeclaration',
+              bind: res[1][2],
+              mutable: res[1][1] ? true : undefined,
+            }
+          }
+          case 1:
+            return res[1][0]
+        }
+      })(),
     ]
   )
 }
@@ -609,7 +617,7 @@ function ruleIdentifierExpr(tokens) {
           tokens.slice(1),
           {
             type: 'identifier',
-            identifier: tokens[0].content,
+            content: tokens[0].content,
           },
         ]
       default:
@@ -667,7 +675,7 @@ function ruleLiteralNumber(tokens) {
 /**
  * 解析
  * @param {import("./types").TokenUnknown[]} tokens
- * @returns {import("./types").NodeUnknown?}
+ * @returns {import("./types").NodeUnknown[]?}
  */
 export function parse(tokens) {
   return ruleStatements(tokens)?.[1]
