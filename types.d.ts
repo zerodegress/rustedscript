@@ -3,6 +3,10 @@ export interface WithRange {
   len: number
 }
 
+export interface WithAnnotation {
+  anno: NodeAnnotation
+}
+
 export interface NodeIdentifier {
   type: 'identifier'
   content: string
@@ -163,6 +167,12 @@ export interface NodeParren {
   expr: NodeUnknown
 }
 
+export interface NodeAnnotation {
+  type: 'annotation'
+  id: string
+  params: NodeUnknown[]
+}
+
 export type NodeUnknown =
   | NodeBlock
   | NodeFunctionDeclaration
@@ -194,6 +204,7 @@ export type NodeUnknown =
   | NodeOr
   | NodeLiteralString
   | NodeParren
+  | NodeAnnotation
 
 export interface TokenKeywordLet {
   type: 'keywordLet'
@@ -328,6 +339,10 @@ export interface TokenLiteralString {
   content: string
 }
 
+export interface TokenPuncAt {
+  type: 'puncAt'
+}
+
 export type TokenUnknown =
   | TokenKeywordFn
   | TokenKeywordLet
@@ -361,6 +376,7 @@ export type TokenUnknown =
   | TokenOpOr
   | TokenOpAnd
   | TokenLiteralString
+  | TokenPuncAt
 
 export interface RwIni {
   [secName: string]: RwIniSection

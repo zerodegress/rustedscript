@@ -8,10 +8,16 @@ statement = block
   | functionDeclaration
   | expr, puncSemi;
 
+annotation = puncAt, identifier, puncParrenLeft, [tupleExpr], puncParrenRight
+  | puncAt, identifier;
+
 functionDeclaration = keywordFn, identifier, puncParrenLeft, tupleExpr, puncParrenRight, block
   | keywordFn, identifier, puncParrenLeft, puncParrenRight, block;
 
 expr = tupleExpr;
+
+annotationExpr = annotation, annotationExpr
+  | tupleExpr;
 
 tupleExpr = bindDeclarationExpr, puncComma, tupleExpr
   | bindDeclarationExpr, puncComma

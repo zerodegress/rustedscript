@@ -133,6 +133,45 @@ function ruleBlock(tokens) {
   )
 }
 
+const ruleAnnotationInternal = createAltRule(
+  createSeqRule(
+    createConsTokenRule('puncAt'),
+    ruleIdentifierExpr,
+    createConsTokenRule('puncParrenLeft'),
+    createOptRule(ruleTupleExpr),
+    createConsTokenRule('puncParrenRight'),
+  ),
+  createSeqRule(createConsTokenRule('puncAt'), ruleIdentifierExpr),
+)
+/**
+ * @param {import("./types").TokenUnknown[]} tokens
+ * @returns {[import("./types").TokenUnknown[], import("./types").NodeAnnotation]?}
+ */
+function ruleAnnotation(tokens) {
+  const res = ruleAnnotationInternal(tokens)
+  return (
+    res && [
+      res[0],
+      {
+        type: 'annotation',
+        id: res[1][1],
+        params:
+          (() => {
+            switch (res[1].length) {
+              case 5:
+                return (
+                  res[1][3] &&
+                  (res[1][3] instanceof Array ? res[1][3] : [res[1][3]])
+                )
+              case 2:
+                return []
+            }
+          })() || [],
+      },
+    ]
+  )
+}
+
 /**
  * @param {import("./types").TokenUnknown[]} tokens
  * @returns {[import("./types").TokenUnknown[], import("./types").NodeFunctionDeclaration]?}
@@ -174,12 +213,12 @@ function ruleExpr(tokens) {
 function ruleTupleExpr(tokens) {
   const res = createAltRule(
     createSeqRule(
-      ruleAssignExpr,
+      ruleAnnotationExpr,
       createConsTokenRule('puncComma'),
       ruleTupleExpr,
     ),
-    createSeqRule(ruleAssignExpr, createConsTokenRule('puncComma')),
-    createSeqRule(ruleAssignExpr),
+    createSeqRule(ruleAnnotationExpr, createConsTokenRule('puncComma')),
+    createSeqRule(ruleAnnotationExpr),
   )(tokens)
   return (
     res && [
@@ -195,6 +234,34 @@ function ruleTupleExpr(tokens) {
             return {
               type: 'tuple',
               exprs: [res[1][0]],
+            }
+          case 1:
+            return res[1][0]
+        }
+      })(),
+    ]
+  )
+}
+
+const ruleAnnotationExprInternal = createAltRule(
+  createSeqRule(ruleAnnotation, ruleAnnotationExpr),
+  createSeqRule(ruleAssignExpr),
+)
+/**
+ * @param {import("./types").TokenUnknown[]} tokens
+ * @returns {[import("./types").TokenUnknown[], import("./types").NodeUnknown]?}
+ */
+function ruleAnnotationExpr(tokens) {
+  const res = ruleAnnotationExprInternal(tokens)
+  return (
+    res && [
+      res[0],
+      (() => {
+        switch (res[1].length) {
+          case 2:
+            return {
+              ...res[1][1],
+              anno: [res[1][0], ...(res[1][1]?.anno || [])],
             }
           case 1:
             return res[1][0]

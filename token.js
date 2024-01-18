@@ -14,6 +14,8 @@ const TOKENS_REGEX = [
   ['puncBang', /^\!/],
   ['puncComma', /^,/],
   ['puncSemi', /^;/],
+  ['puncSemi', /^;/],
+  ['puncAt', /^@/],
   [
     'keywordFn',
     /^fn((?=[-\(\)\[\]\{\}\\\/\.,<>;:'"\\|`~!@#\$%^&\*\?\+=\s])|$)/,
