@@ -343,6 +343,16 @@ export interface TokenPuncAt {
   type: 'puncAt'
 }
 
+export interface TokenLineComment {
+  type: 'lineComment'
+  content: string
+}
+
+export interface TokenBlockComment {
+  type: 'blockComment'
+  content: string
+}
+
 export type TokenUnknown =
   | TokenKeywordFn
   | TokenKeywordLet
@@ -377,6 +387,8 @@ export type TokenUnknown =
   | TokenOpAnd
   | TokenLiteralString
   | TokenPuncAt
+  | TokenLineComment
+  | TokenBlockComment
 
 export interface RwIni {
   [secName: string]: RwIniSection

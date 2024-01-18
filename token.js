@@ -4,6 +4,7 @@ export class TokenizeError extends Error {}
  * @type {[import("./types").TokenUnknown['type'], RegExp][]}
  */
 const TOKENS_REGEX = [
+  ['lineComment', /^\/\/.*$/],
   ['puncParrenLeft', /^\(/],
   ['puncParrenRight', /^\)/],
   ['puncBraceLeft', /^\{/],
@@ -75,10 +76,22 @@ export function tokenize(src) {
           case 'literalString':
             token.content = res[0]
             break
+          case 'lineComment':
+          case 'blockComment':
+            token.content = res[0]
+            src.replace(regex, '')
+            break
           case 'unexpected':
             throw new TokenizeError('unexpected token')
         }
-        tokens.push(token)
+        switch (token.type) {
+          default:
+            tokens.push(token)
+            break
+          case 'lineComment':
+          case 'blockComment':
+            break
+        }
         src = src.replace(regex, '')
         break
       }

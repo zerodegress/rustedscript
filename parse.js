@@ -777,5 +777,5 @@ function ruleLiteralNumber(tokens) {
  * @returns {import("./types").NodeUnknown[]?}
  */
 export function parse(tokens) {
-  return ruleStatements(tokens)?.[1]
+  return tokens.length > 0 ? ruleStatements(tokens)?.[1] : []
 }

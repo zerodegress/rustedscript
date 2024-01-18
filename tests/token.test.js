@@ -34,6 +34,11 @@ describe('tokenize', () => {
       { type: 'puncBraceRight' },
     ])
   })
+
+  test('comment', () => {
+    expect(tokenize('// abc')).toEqual([])
+  })
+
   test('punc', () => {
     expect(tokenize('@abc')).toEqual([
       { type: 'puncAt' },

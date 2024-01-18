@@ -72,6 +72,10 @@ describe('parse', () => {
     ])
   })
 
+  test('comment', () => {
+    expect(parse(tokenize('// abc'))).toEqual([])
+  })
+
   test('literal', () => {
     expect(parse(tokenize('"abc";'))).toEqual([
       {
