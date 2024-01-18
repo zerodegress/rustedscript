@@ -90,7 +90,7 @@ function ruleStatement(tokens) {
   const res = createAltRule(
     createSeqRule(ruleBlock),
     createSeqRule(ruleFunctionDeclaration),
-    createSeqRule(ruleExpr, createConsTokenRule('puncSemi')),
+    createSeqRule(ruleExpr, createOptRule(createConsTokenRule('puncSemi'))),
   )(tokens)
   return res && [res[0], res[1][0]]
 }

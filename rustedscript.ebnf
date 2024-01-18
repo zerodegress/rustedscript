@@ -6,7 +6,7 @@ statements = statment, statements
 
 statement = block
   | functionDeclaration
-  | expr, puncSemi;
+  | expr, [puncSemi];
 
 annotation = puncAt, identifier, puncParrenLeft, [tupleExpr], puncParrenRight
   | puncAt, identifier;
