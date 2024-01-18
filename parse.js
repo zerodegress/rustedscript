@@ -583,9 +583,24 @@ function ruleParrenExpr(tokens) {
       ruleExpr,
       createConsTokenRule('puncParrenRight'),
     ),
-    ruleTermExpr,
+    createSeqRule(ruleTermExpr),
   )(tokens)
-  return res && [res[0], res[1] instanceof Array ? res[1][1] : res[1]]
+  return (
+    res && [
+      res[0],
+      (() => {
+        switch (res[1].length) {
+          case 3:
+            return {
+              type: 'parren',
+              expr: res[1][1],
+            }
+          case 1:
+            return res[1][0]
+        }
+      })(),
+    ]
+  )
 }
 
 /**
