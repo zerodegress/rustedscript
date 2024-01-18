@@ -88,8 +88,6 @@ function createConsTokenRule(type) {
  */
 function ruleStatement(tokens) {
   const res = createAltRule(
-    createSeqRule(ruleBlock),
-    createSeqRule(ruleFunctionDeclaration),
     createSeqRule(ruleExpr, createOptRule(createConsTokenRule('puncSemi'))),
   )(tokens)
   return res && [res[0], res[1][0]]
@@ -199,8 +197,10 @@ function ruleFunctionDeclaration(tokens) {
 }
 
 const ruleExprInternal = createAltRule(
+  ruleBlock,
   ruleFunctionDeclaration,
   ruleBindDeclarationExpr,
+  ruleTupleExpr,
 )
 /**
  * @param {import("./types").TokenUnknown[]} tokens
@@ -210,13 +210,10 @@ function ruleExpr(tokens) {
   return ruleExprInternal(tokens)
 }
 
-const ruleBindDeclarationExprInternal = createAltRule(
-  createSeqRule(
-    createConsTokenRule('keywordLet'),
-    createOptRule(createConsTokenRule('keywordMut')),
-    ruleTupleExpr,
-  ),
-  createSeqRule(ruleTupleExpr),
+const ruleBindDeclarationExprInternal = createSeqRule(
+  createConsTokenRule('keywordLet'),
+  createOptRule(createConsTokenRule('keywordMut')),
+  ruleTupleExpr,
 )
 /**
  * @param {import("./types").TokenUnknown[]} tokens
@@ -227,19 +224,11 @@ function ruleBindDeclarationExpr(tokens) {
   return (
     res && [
       res[0],
-      (() => {
-        switch (res[1].length) {
-          case 3: {
-            return {
-              type: 'bindDeclaration',
-              bind: res[1][2],
-              mutable: res[1][1] ? true : undefined,
-            }
-          }
-          case 1:
-            return res[1][0]
-        }
-      })(),
+      {
+        type: 'bindDeclaration',
+        bind: res[1][2],
+        mutable: res[1][1] ? true : undefined,
+      },
     ]
   )
 }

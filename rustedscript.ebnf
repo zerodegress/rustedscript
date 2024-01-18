@@ -4,8 +4,7 @@ block = puncBraceLeft, statements, puncBraceRight
 statements = statment, statements
   | statement;
 
-statement = block
-  | expr, [puncSemi];
+statement = expr, [puncSemi];
 
 annotation = puncAt, identifier, puncParrenLeft, [tupleExpr], puncParrenRight
   | puncAt, identifier;
@@ -13,12 +12,15 @@ annotation = puncAt, identifier, puncParrenLeft, [tupleExpr], puncParrenRight
 functionDeclaration = keywordFn, identifier, puncParrenLeft, [tupleExpr], puncParrenRight, block;
 
 expr = functionDeclarationExpr
-  | bindDeclarationExpr;
+  | blockExpr
+  | bindDeclarationExpr
+  | tupleExpr;
 
 functionDeclarationExpr = functionDeclaration;
 
-bindDeclarationExpr = keywordLet, [keywordMut], tupleExpr
-  | tupleExpr;
+blockExpr = block;
+
+bindDeclarationExpr = keywordLet, [keywordMut], tupleExpr;
 
 tupleExpr = annotationExpr, puncComma, tupleExpr
   | annotationExpr, puncComma
