@@ -556,6 +556,8 @@ function ruleNegExpr(tokens) {
         switch (res[1].length) {
           case 2: {
             switch (res[1][0]) {
+              default:
+                throw new Error('unreachable!')
               case 'opSub':
                 return {
                   type: 'neg',
@@ -605,6 +607,8 @@ function ruleIndexExpr(tokens) {
         switch (res[1].length) {
           case 4: {
             switch (res[1][1]) {
+              default:
+                throw new Error('unreachable!')
               case 'puncBracketLeft':
                 return {
                   type: 'index',
