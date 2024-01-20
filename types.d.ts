@@ -368,6 +368,22 @@ export interface TokenLiteralBool {
   content: string
 }
 
+export interface TokenKeywordIf {
+  type: 'keywordIf'
+}
+
+export interface TokenKeywordElse {
+  type: 'keywordElse'
+}
+
+export interface TokenKeywordFor {
+  type: 'keywordFor'
+}
+
+export interface TokenKeywordWhile {
+  type: 'keywordWhile'
+}
+
 export type TokenUnknown =
   | TokenKeywordFn
   | TokenKeywordLet
@@ -405,6 +421,10 @@ export type TokenUnknown =
   | TokenLineComment
   | TokenBlockComment
   | TokenLiteralBool
+  | TokenKeywordIf
+  | TokenKeywordElse
+  | TokenKeywordWhile
+  | TokenKeywordFor
 
 export interface RWIni {
   sections: RWIniSection[]
