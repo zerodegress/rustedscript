@@ -453,3 +453,8 @@ export interface RWASMInstructionSetMemory {
 }
 
 export type RWASMInstruction = RWASMInstructionSetMemory
+
+export interface RWASMCompileContext {
+  scope: string
+  idMap: Record<string, string>
+}

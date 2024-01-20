@@ -1,25 +1,25 @@
 export class RustedScriptCompileError extends Error {}
 
-/** @type {(expr: import("./types").NodeUnknown) => string} */
-function compileComputeExpr(expr) {
+/** @type {(expr: import("./types").NodeUnknown, ctx: import("./types").RWASMCompileContext) => string} */
+function compileComputeExpr(expr, ctx) {
   switch (expr.type) {
     default:
       throw new RustedScriptCompileError('unsupported syntaxes')
     case 'identifier':
-      return `memory.${expr.content}`
+      return ctx.idMap[expr.content]
     case 'literalInt':
     case 'literalFloat':
       return expr.content
     case 'literalBool':
       return `${expr.val}`
     case 'parren':
-      return `(${compileComputeExpr(expr.expr)})`
+      return `(${compileComputeExpr(expr.expr, ctx)})`
     case 'add':
     case 'sub':
     case 'mul':
     case 'div':
     case 'mod':
-      return `${compileComputeExpr(expr.left)}${(() => {
+      return `${compileComputeExpr(expr.left, ctx)}${(() => {
         switch (expr.type) {
           case 'add':
             return '+'
@@ -32,12 +32,12 @@ function compileComputeExpr(expr) {
           case 'mod':
             return '%'
         }
-      })()}${compileComputeExpr(expr.right)}`
+      })()}${compileComputeExpr(expr.right, ctx)}`
   }
 }
 
-/** @type {(stmt: import("./types").NodeUnknown) => import("./types").RWASMInstruction[]} */
-function compileStatement(stmt) {
+/** @type {(stmt: import("./types").NodeUnknown, ctx: import("./types").RWASMCompileContext) => [import("./types").RWASMInstruction[], import("./types").RWASMCompileContext]} */
+function compileStatement(stmt, ctx) {
   switch (stmt.type) {
     default:
       throw new RustedScriptCompileError('unsupported syntaxes')
@@ -47,10 +47,15 @@ function compileStatement(stmt) {
           throw new RustedScriptCompileError('unsupported syntaxes')
         case 'identifier':
           return [
-            {
-              type: 'setmem',
-              sets: [[stmt.left.content, compileComputeExpr(stmt.right)]],
-            },
+            [
+              {
+                type: 'setmem',
+                sets: [
+                  [stmt.left.content, compileComputeExpr(stmt.right, ctx)],
+                ],
+              },
+            ],
+            ctx,
           ]
       }
   }
@@ -58,33 +63,73 @@ function compileStatement(stmt) {
 
 /** @type {(nodes: import("./types").NodeUnknown[]) => import("./types").RWASM} */
 export function compile(nodes) {
-  return nodes
-    .map(node => {
-      switch (node.type) {
-        default:
-          throw new RustedScriptCompileError('unsupported syntaxes')
-        case 'functionDeclaration':
-          return {
-            type: 'action',
-            name: node.identifier.content,
-            instructions: node.block.statements
-              .map(compileStatement)
-              .reduce((p, c) => [...p, ...c], []),
-          }
-        case 'bindDeclaration':
-          return {
-            type: 'memdef',
-            name: (() => {
-              switch (node.bind.type) {
-                default:
-                  throw new RustedScriptCompileError('unsupported syntaxes')
-                case 'identifier':
-                  return node.bind.content
-              }
-            })(),
-            typ: (() => {
+  /** @type {[import("./types").RWASM, import("./types").RWASMCompileContext]} */
+  const init = [
+    {
+      memories: {},
+      externalMemories: {},
+      externalActions: [],
+      actions: [],
+    },
+    {
+      scope: '',
+      idMap: {},
+    },
+  ]
+  const [asm] = nodes.reduce(([asm, ctx], node) => {
+    switch (node.type) {
+      default:
+        throw new RustedScriptCompileError('unsupported syntaxes')
+      case 'functionDeclaration': {
+        const name = node.identifier.content
+        /** @type {[import("./types").RWASMInstruction[], import("./types").RWASMCompileContext]} */
+        const init = [
+          [],
+          {
+            ...ctx,
+            scope: `rwaction_${name}`,
+          },
+        ]
+        const [instructions] = node.block.statements.reduce(
+          ([insts, ctx], stmt) => {
+            const [nInsts, nCtx] = compileStatement(stmt, ctx)
+            return [[...insts, ...nInsts], nCtx]
+          },
+          init,
+        )
+        return [
+          {
+            ...asm,
+            actions: [
+              ...asm.actions,
+              {
+                name,
+                instructions,
+              },
+            ],
+          },
+          {
+            ...ctx,
+            idMap: {
+              ...ctx.idMap,
+              [name]: name,
+            },
+          },
+        ]
+      }
+      case 'bindDeclaration': {
+        switch (node.bind.type) {
+          default:
+            throw new RustedScriptCompileError('unsupported syntaxes')
+          case 'identifier': {
+            const name = node.bind.content
+            const typ = (() => {
               if (node.anno && node.anno.length > 0) {
+                /** @type {import("./types").NodeAnnotation?} */
                 const anno = node.anno.find(anno => anno.id.content === 'type')
+                if (!anno || anno.params.length <= 0) {
+                  throw new RustedScriptCompileError('unsupported syntaxes')
+                }
                 const param = anno.params[0]
                 switch (param.type) {
                   default:
@@ -95,44 +140,27 @@ export function compile(nodes) {
               } else {
                 throw new RustedScriptCompileError('unsupported syntaxes')
               }
-            })(),
-          }
-      }
-    })
-    .filter(x => x)
-    .reduce(
-      (asm, c) => {
-        return (() => {
-          switch (c.type) {
-            default:
-              throw new Error('unreachable!')
-            case 'memdef':
-              return {
+            })()
+            return [
+              {
                 ...asm,
                 memories: {
                   ...asm.memories,
-                  [c.name]: c.typ,
+                  [name]: typ,
                 },
-              }
-            case 'action':
-              return {
-                ...asm,
-                actions: [
-                  ...asm.actions,
-                  {
-                    name: c.name,
-                    instructions: c.instructions,
-                  },
-                ],
-              }
+              },
+              {
+                ...ctx,
+                idMap: {
+                  ...ctx.idMap,
+                  [name]: `memory.${name}`,
+                },
+              },
+            ]
           }
-        })()
-      },
-      {
-        memories: {},
-        externalMemories: {},
-        externalActions: [],
-        actions: [],
-      },
-    )
+        }
+      }
+    }
+  }, init)
+  return asm
 }
