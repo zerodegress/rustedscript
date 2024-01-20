@@ -1,4 +1,5 @@
-@action
+@type('number') let a
+
 fn test() {
   a = a + 1;
 }

@@ -1,5 +1,35 @@
 class ParseError extends Error {}
 
+/**
+ * @param {import("./types").TokenUnknown['type']} type
+ */
+function createCapTokenRule(type) {
+  return tokens => {
+    if (tokens.length <= 0) {
+      throw new ParseError('unexpected eof')
+    }
+    switch (tokens[0].type) {
+      default:
+        return null
+      case type:
+        return [tokens.slice(1), tokens[0]]
+    }
+  }
+}
+
+function createTransRule(rule, transform) {
+  return tokens => {
+    if (tokens.length <= 0) {
+      throw new ParseError('unexpected eof')
+    }
+    const res = rule(tokens)
+    if (!res) {
+      return null
+    }
+    return [res[0], transform(res[1])]
+  }
+}
+
 function createOptRule(rule) {
   return tokens => {
     if (tokens.length <= 0) {
@@ -8,8 +38,12 @@ function createOptRule(rule) {
     let res
     try {
       res = rule(tokens)
-    } catch {
-      return [tokens, null]
+    } catch (e) {
+      if (e instanceof ParseError) {
+        return [tokens, null]
+      } else {
+        throw e
+      }
     }
     if (!res) {
       return [tokens, null]
@@ -27,8 +61,12 @@ function createAltRule(...rules) {
       let res
       try {
         res = rule(tokens)
-      } catch {
-        continue
+      } catch (e) {
+        if (e instanceof ParseError) {
+          continue
+        } else {
+          throw e
+        }
       }
       if (!res) {
         continue
@@ -51,6 +89,9 @@ function createSeqRule(...rules) {
       try {
         res = rule(tokens)
       } catch (e) {
+        if (!(e instanceof ParseError)) {
+          throw e
+        }
         if (results.length <= 0) {
           throw e
         }
@@ -70,16 +111,7 @@ function createSeqRule(...rules) {
  * @param {import("./types").TokenUnknown['type']} type
  */
 function createConsTokenRule(type) {
-  return tokens => {
-    if (tokens.length <= 0) {
-      throw new ParseError('unexpected eof')
-    }
-    if (tokens[0].type != type) {
-      return null
-    }
-    /** @type {[import("./types").TokenUnknown[], string]} */
-    return [tokens.slice(1), type]
-  }
+  return createTransRule(createCapTokenRule(type), token => token.type)
 }
 
 /**
@@ -93,21 +125,19 @@ function ruleStatement(tokens) {
   return res && [res[0], res[1][0]]
 }
 
+const __ruleStatements = createAltRule(
+  createTransRule(
+    createSeqRule(ruleStatement, ruleStatements),
+    ([stmt, stmts]) => [stmt, ...stmts],
+  ),
+  createSeqRule(ruleStatement),
+)
 /**
  * @param {import("./types").TokenUnknown[]} tokens
  * @returns {[import("./types").TokenUnknown[], import("./types").NodeUnknown[]]?}
  */
 function ruleStatements(tokens) {
-  const res = createAltRule(
-    createSeqRule(ruleStatement, ruleStatements),
-    createSeqRule(ruleStatement),
-  )(tokens)
-  return (
-    res && [
-      res[0],
-      res[1].length >= 2 ? [res[1][0], ...res[1][2]] : [res[1][0]],
-    ]
-  )
+  return __ruleStatements(tokens)
 }
 
 /**
@@ -131,43 +161,61 @@ function ruleBlock(tokens) {
   )
 }
 
-const ruleAnnotationInternal = createAltRule(
-  createSeqRule(
-    createConsTokenRule('puncAt'),
-    ruleIdentifierExpr,
-    createConsTokenRule('puncParrenLeft'),
-    createOptRule(ruleTupleExpr),
-    createConsTokenRule('puncParrenRight'),
+const __ruleAnnotation = createAltRule(
+  createTransRule(
+    createSeqRule(
+      createCapTokenRule('puncAt'),
+      ruleIdentifierExpr,
+      createCapTokenRule('puncParrenLeft'),
+      createTransRule(
+        createOptRule(
+          createTransRule(ruleTupleExpr, tuple => {
+            switch (tuple.type) {
+              default:
+                return [tuple]
+              case 'tuple':
+                return tuple.exprs
+            }
+          }),
+        ),
+        x => x || [],
+      ),
+      createCapTokenRule('puncParrenRight'),
+    ),
+    ([, id, , params]) => ({
+      type: 'annotation',
+      id,
+      params,
+    }),
   ),
-  createSeqRule(createConsTokenRule('puncAt'), ruleIdentifierExpr),
+  createTransRule(
+    createSeqRule(createCapTokenRule('puncAt'), ruleIdentifierExpr),
+    ([, id]) => ({
+      type: 'annotation',
+      id,
+      params: [],
+    }),
+  ),
 )
 /**
  * @param {import("./types").TokenUnknown[]} tokens
  * @returns {[import("./types").TokenUnknown[], import("./types").NodeAnnotation]?}
  */
 function ruleAnnotation(tokens) {
-  const res = ruleAnnotationInternal(tokens)
-  return (
-    res && [
-      res[0],
-      {
-        type: 'annotation',
-        id: res[1][1],
-        params:
-          (() => {
-            switch (res[1].length) {
-              case 5:
-                return (
-                  res[1][3] &&
-                  (res[1][3] instanceof Array ? res[1][3] : [res[1][3]])
-                )
-              case 2:
-                return []
-            }
-          })() || [],
-      },
-    ]
-  )
+  return __ruleAnnotation(tokens)
+}
+
+/** @type {import("./types").Parser<import("./types").NodeAnnotation[]>} */
+const __ruleAnnotations = createAltRule(
+  createTransRule(
+    createSeqRule(ruleAnnotation, ruleAnnotations),
+    ([anno, annos]) => [anno, ...annos],
+  ),
+  createSeqRule(ruleAnnotation),
+)
+/** @type {import("./types").Parser<import("./types").NodeAnnotation[]>} */
+function ruleAnnotations(tokens) {
+  return __ruleAnnotations(tokens)
 }
 
 /**
@@ -196,608 +244,429 @@ function ruleFunctionDeclaration(tokens) {
   )
 }
 
-const ruleExprInternal = createAltRule(
-  ruleBlock,
-  ruleFunctionDeclaration,
-  ruleBindDeclarationExpr,
-  ruleTupleExpr,
-)
-/**
- * @param {import("./types").TokenUnknown[]} tokens
- * @returns {[import("./types").TokenUnknown[], import("./types").NodeUnknown]?}
- */
+/** @type {import("./types").Parser} */
+const __ruleExpr = createAltRule(ruleStatementExpr, ruleComputeExpr)
+/** @type {import("./types").Parser} */
 function ruleExpr(tokens) {
-  return ruleExprInternal(tokens)
+  return __ruleExpr(tokens)
 }
 
-const ruleBindDeclarationExprInternal = createSeqRule(
-  createConsTokenRule('keywordLet'),
-  createOptRule(createConsTokenRule('keywordMut')),
-  ruleTupleExpr,
+/** @type {import("./types").Parser} */
+const __ruleStatementExpr = createTransRule(
+  createSeqRule(
+    createOptRule(ruleAnnotations),
+    createAltRule(ruleBlock, ruleFunctionDeclaration, ruleBindDeclarationExpr),
+  ),
+  ([anno, stmt]) => ({
+    ...stmt,
+    anno: anno || undefined,
+  }),
 )
-/**
- * @param {import("./types").TokenUnknown[]} tokens
- * @returns {[import("./types").TokenUnknown[], import("./types").NodeUnknown]?}
- */
-function ruleBindDeclarationExpr(tokens) {
-  const res = ruleBindDeclarationExprInternal(tokens)
-  return (
-    res && [
-      res[0],
-      {
-        type: 'bindDeclaration',
-        bind: res[1][2],
-        mutable: res[1][1] ? true : undefined,
-      },
-    ]
-  )
+/** @type {import("./types").Parser} */
+function ruleStatementExpr(tokens) {
+  return __ruleStatementExpr(tokens)
 }
 
-/**
- * @param {import("./types").TokenUnknown[]} tokens
- * @returns {[import("./types").TokenUnknown[], import("./types").NodeUnknown]?}
- */
-function ruleTupleExpr(tokens) {
-  const res = createAltRule(
+/** @type {import("./types").Parser} */
+const __ruleComputeExpr = createAltRule(ruleTupleExpr)
+/** @type {import("./types").Parser} */
+function ruleComputeExpr(tokens) {
+  return __ruleComputeExpr(tokens)
+}
+
+/** @type {import("./types").Parser} */
+const __ruleBindDeclarationExpr = createTransRule(
+  createSeqRule(
+    createConsTokenRule('keywordLet'),
+    createTransRule(createOptRule(createConsTokenRule('keywordMut')), mut =>
+      mut ? true : undefined,
+    ),
+    ruleTupleExpr,
+  ),
+  ([, mutable, bind]) => ({
+    type: 'bindDeclaration',
+    bind,
+    mutable,
+  }),
+)
+/** @type {import("./types").Parser} */
+function ruleBindDeclarationExpr(tokens) {
+  return __ruleBindDeclarationExpr(tokens)
+}
+
+/** @type {import("./types").Parser} */
+const __ruleTupleExpr = createAltRule(
+  createTransRule(
     createSeqRule(
       ruleAnnotationExpr,
-      createConsTokenRule('puncComma'),
+      createCapTokenRule('puncComma'),
       ruleTupleExpr,
     ),
-    createSeqRule(ruleAnnotationExpr, createConsTokenRule('puncComma')),
-    createSeqRule(ruleAnnotationExpr),
-  )(tokens)
-  return (
-    res && [
-      res[0],
-      (() => {
-        switch (res[1].length) {
-          case 3:
-            return {
-              type: 'tuple',
-              exprs: [res[1][0], ...res[1][2].exprs],
-            }
-          case 2:
-            return {
-              type: 'tuple',
-              exprs: [res[1][0]],
-            }
-          case 1:
-            return res[1][0]
-        }
-      })(),
-    ]
-  )
-}
-
-const ruleAnnotationExprInternal = createAltRule(
-  createSeqRule(ruleAnnotation, ruleAnnotationExpr),
-  createSeqRule(ruleAssignExpr),
+    ([expr, , tuple]) => ({
+      type: 'tuple',
+      exprs: [expr, ...(tuple?.exprs || [])],
+    }),
+  ),
+  createTransRule(
+    createSeqRule(ruleAnnotationExpr, createCapTokenRule('puncComma')),
+    ([expr]) => ({
+      type: 'tuple',
+      exprs: [expr],
+    }),
+  ),
+  ruleAnnotationExpr,
 )
-/**
- * @param {import("./types").TokenUnknown[]} tokens
- * @returns {[import("./types").TokenUnknown[], import("./types").NodeUnknown]?}
- */
-function ruleAnnotationExpr(tokens) {
-  const res = ruleAnnotationExprInternal(tokens)
-  return (
-    res && [
-      res[0],
-      (() => {
-        switch (res[1].length) {
-          case 2:
-            return {
-              ...res[1][1],
-              anno: [res[1][0], ...(res[1][1]?.anno || [])],
-            }
-          case 1:
-            return res[1][0]
-        }
-      })(),
-    ]
-  )
+/** @type {import("./types").Parser} */
+function ruleTupleExpr(tokens) {
+  return __ruleTupleExpr(tokens)
 }
 
-/**
- * @param {import("./types").TokenUnknown[]} tokens
- * @returns {[import("./types").TokenUnknown[], import("./types").NodeUnknown]?}
- */
-function ruleAssignExpr(tokens) {
-  const res = createAltRule(
+/** @type {import("./types").Parser} */
+const __ruleAnnotationExpr = createAltRule(
+  createTransRule(
+    createSeqRule(ruleAnnotation, ruleAnnotationExpr),
+    ([anno, expr]) => ({
+      ...expr,
+      anno: [anno, ...(expr?.anno || [])],
+    }),
+  ),
+  ruleAssignExpr,
+)
+/** @type {import("./types").Parser} */
+function ruleAnnotationExpr(tokens) {
+  return __ruleAnnotationExpr(tokens)
+}
+
+/** @type {import("./types").Parser} */
+const __ruleAssignExpr = createAltRule(
+  createTransRule(
     createSeqRule(
       ruleOrExpr,
-      createAltRule(createConsTokenRule('opAssign')),
+      createAltRule(
+        createTransRule(createCapTokenRule('opAssign'), () => 'assign'),
+      ),
       ruleAssignExpr,
     ),
-    ruleOrExpr,
-  )(tokens)
-  return (
-    res && [
-      res[0],
-      res[1] instanceof Array
-        ? {
-            type: (() => {
-              switch (res[1][1]) {
-                case 'opAssign':
-                  return 'assign'
-              }
-            })(),
-            left: res[1][0],
-            right: res[1][2],
-          }
-        : res[1],
-    ]
-  )
-}
-
-/**
- * @param {import("./types").TokenUnknown[]} tokens
- * @returns {[import("./types").TokenUnknown[], import("./types").NodeUnknown]?}
- */
-function ruleOrExpr(tokens) {
-  const res = createAltRule(
-    createSeqRule(ruleAndExpr, createConsTokenRule('opOr'), ruleOrExpr),
-    createSeqRule(ruleAndExpr),
-  )(tokens)
-  return (
-    res && [
-      res[0],
-      (() => {
-        switch (res[1].length) {
-          case 3:
-            return {
-              type: 'or',
-              left: res[1][0],
-              right: res[1][2],
-            }
-          case 1:
-            return res[1][0]
-        }
-      })(),
-    ]
-  )
-}
-
-/**
- * @param {import("./types").TokenUnknown[]} tokens
- * @returns {[import("./types").TokenUnknown[], import("./types").NodeUnknown]?}
- */
-function ruleAndExpr(tokens) {
-  const res = createAltRule(
-    createSeqRule(ruleEqExpr, createConsTokenRule('opAnd'), ruleAndExpr),
-    createSeqRule(ruleEqExpr),
-  )(tokens)
-  return (
-    res && [
-      res[0],
-      (() => {
-        switch (res[1].length) {
-          case 3:
-            return {
-              type: 'and',
-              left: res[1][0],
-              right: res[1][2],
-            }
-          case 1:
-            return res[1][0]
-        }
-      })(),
-    ]
-  )
-}
-
-/**
- * @param {import("./types").TokenUnknown[]} tokens
- * @returns {[import("./types").TokenUnknown[], import("./types").NodeUnknown]?}
- */
-function ruleEqExpr(tokens) {
-  const res = createAltRule(
-    createSeqRule(ruleGtExpr, createConsTokenRule('opEq'), ruleEqExpr),
-    createSeqRule(ruleGtExpr, createConsTokenRule('opNe'), ruleEqExpr),
-    createSeqRule(ruleGtExpr),
-  )(tokens)
-  return (
-    res && [
-      res[0],
-      (() => {
-        switch (res[1].length) {
-          case 3:
-            return {
-              type: (() => {
-                switch (res[1][1]) {
-                  case 'opEq':
-                    return 'eq'
-                  case 'opNe':
-                    return 'ne'
-                }
-              })(),
-              left: res[1][0],
-              right: res[1][2],
-            }
-          case 1:
-            return res[1][0]
-        }
-      })(),
-    ]
-  )
-}
-
-const ruleGtExprInternal = createAltRule(
-  createSeqRule(ruleAddExpr, createConsTokenRule('opGt'), ruleGtExpr),
-  createSeqRule(ruleAddExpr, createConsTokenRule('opGe'), ruleGtExpr),
-  createSeqRule(ruleAddExpr, createConsTokenRule('opLt'), ruleGtExpr),
-  createSeqRule(ruleAddExpr, createConsTokenRule('opLe'), ruleGtExpr),
-  createSeqRule(ruleAddExpr),
+    ([left, type, right]) => ({
+      type,
+      left,
+      right,
+    }),
+  ),
+  ruleOrExpr,
 )
-/**
- * @param {import("./types").TokenUnknown[]} tokens
- * @returns {[import("./types").TokenUnknown[], import("./types").NodeUnknown]?}
- */
-function ruleGtExpr(tokens) {
-  const res = ruleGtExprInternal(tokens)
-  return (
-    res && [
-      res[0],
-      (() => {
-        switch (res[1].length) {
-          case 3:
-            return {
-              type: (() => {
-                switch (res[1][1]) {
-                  case 'opGt':
-                    return 'gt'
-                  case 'opGe':
-                    return 'ge'
-                  case 'opLt':
-                    return 'lt'
-                  case 'opLe':
-                    return 'le'
-                }
-              })(),
-              left: res[1][0],
-              right: res[1][2],
-            }
-          case 1:
-            return res[1][0]
-        }
-      })(),
-    ]
-  )
+/** @type {import("./types").Parser} */
+function ruleAssignExpr(tokens) {
+  return __ruleAssignExpr(tokens)
 }
 
-/**
- * @param {import("./types").TokenUnknown[]} tokens
- * @returns {[import("./types").TokenUnknown[], import("./types").NodeUnknown]?}
- */
-function ruleAddExpr(tokens) {
-  const res = createAltRule(
+/** @type {import("./types").Parser} */
+const __ruleOrExpr = createAltRule(
+  createTransRule(
+    createSeqRule(ruleAndExpr, createCapTokenRule('opOr'), ruleOrExpr),
+    ([left, , right]) => ({
+      type: 'or',
+      left,
+      right,
+    }),
+  ),
+  ruleAndExpr,
+)
+/** @type {import("./types").Parser} */
+function ruleOrExpr(tokens) {
+  return __ruleOrExpr(tokens)
+}
+
+/** @type {import("./types").Parser} */
+const __ruleAndExpr = createAltRule(
+  createTransRule(
+    createSeqRule(ruleEqExpr, createCapTokenRule('opAnd'), ruleAndExpr),
+    ([left, , right]) => ({
+      type: 'and',
+      left,
+      right,
+    }),
+  ),
+  ruleEqExpr,
+)
+/** @type {import("./types").Parser} */
+function ruleAndExpr(tokens) {
+  return __ruleAndExpr(tokens)
+}
+
+/** @type {import("./types").Parser} */
+const __ruleEqExpr = createAltRule(
+  createTransRule(
+    createSeqRule(
+      ruleGtExpr,
+      createAltRule(
+        createTransRule(createCapTokenRule('opEq'), () => 'eq'),
+        createTransRule(createCapTokenRule('opNe'), () => 'ne'),
+      ),
+      ruleEqExpr,
+    ),
+    ([left, type, right]) => ({
+      type,
+      left,
+      right,
+    }),
+  ),
+  ruleGtExpr,
+)
+/** @type {import("./types").Parser} */
+function ruleEqExpr(tokens) {
+  return __ruleEqExpr(tokens)
+}
+
+/** @type {import("./types").Parser} */
+const __ruleGtExpr = createAltRule(
+  createTransRule(
+    createSeqRule(
+      ruleAddExpr,
+      createAltRule(
+        createTransRule(createCapTokenRule('opGt'), () => 'gt'),
+        createTransRule(createCapTokenRule('opGe'), () => 'ge'),
+        createTransRule(createCapTokenRule('opLt'), () => 'lt'),
+        createTransRule(createCapTokenRule('opLe'), () => 'le'),
+      ),
+      ruleGtExpr,
+    ),
+    ([left, type, right]) => ({
+      type,
+      left,
+      right,
+    }),
+  ),
+  ruleAddExpr,
+)
+/** @type {import("./types").Parser} */
+function ruleGtExpr(tokens) {
+  return __ruleGtExpr(tokens)
+}
+
+/** @type {import("./types").Parser} */
+const __ruleAddExpr = createAltRule(
+  createTransRule(
     createSeqRule(
       ruleMulExpr,
-      createAltRule(createConsTokenRule('opAdd'), createConsTokenRule('opSub')),
+      createAltRule(
+        createTransRule(createConsTokenRule('opAdd'), () => 'add'),
+        createTransRule(createConsTokenRule('opSub'), () => 'sub'),
+      ),
       ruleAddExpr,
     ),
-    ruleMulExpr,
-  )(tokens)
-  return (
-    res && [
-      res[0],
-      res[1] instanceof Array
-        ? {
-            type: (() => {
-              switch (res[1][1]) {
-                case 'opAdd':
-                  return 'add'
-                case 'opSub':
-                  return 'sub'
-              }
-            })(),
-            left: res[1][0],
-            right: res[1][2],
-          }
-        : res[1],
-    ]
-  )
+    ([left, type, right]) => ({
+      type,
+      left,
+      right,
+    }),
+  ),
+  ruleMulExpr,
+)
+/** @type {import("./types").Parser} */
+function ruleAddExpr(tokens) {
+  return __ruleAddExpr(tokens)
 }
 
-/**
- * @param {import("./types").TokenUnknown[]} tokens
- * @returns {[import("./types").TokenUnknown[], import("./types").NodeUnknown]?}
- */
-function ruleMulExpr(tokens) {
-  const res = createAltRule(
+/** @type {import("./types").Parser} */
+const __ruleMulExpr = createAltRule(
+  createTransRule(
     createSeqRule(
       ruleNegExpr,
       createAltRule(
-        createConsTokenRule('opMul'),
-        createConsTokenRule('opDiv'),
-        createConsTokenRule('opMod'),
+        createTransRule(createCapTokenRule('opMul'), () => 'mul'),
+        createTransRule(createCapTokenRule('opDiv'), () => 'div'),
+        createTransRule(createCapTokenRule('opMod'), () => 'mod'),
       ),
       ruleMulExpr,
     ),
-    ruleNegExpr,
-  )(tokens)
-  return (
-    res && [
-      res[0],
-      res[1] instanceof Array
-        ? {
-            type: (() => {
-              switch (res[1][1]) {
-                case 'opMul':
-                  return 'mul'
-                case 'opDiv':
-                  return 'div'
-                case 'opMod':
-                  return 'mod'
-              }
-            })(),
-            left: res[1][0],
-            right: res[1][2],
-          }
-        : res[1],
-    ]
-  )
-}
-
-/**
- * @param {import("./types").TokenUnknown[]} tokens
- * @returns {[import("./types").TokenUnknown[], import("./types").NodeUnknown]?}
- */
-function ruleNegExpr(tokens) {
-  const res = createAltRule(
-    createSeqRule(createConsTokenRule('opSub'), ruleNegExpr),
-    createSeqRule(createConsTokenRule('puncBang'), ruleNegExpr),
-    createSeqRule(ruleIndexExpr),
-  )(tokens)
-  return (
-    res && [
-      res[0],
-      (() => {
-        switch (res[1].length) {
-          case 2: {
-            switch (res[1][0]) {
-              default:
-                throw new Error('unreachable!')
-              case 'opSub':
-                return {
-                  type: 'neg',
-                  expr: res[1][1],
-                }
-              case 'puncBang':
-                return {
-                  type: 'not',
-                  expr: res[1][1],
-                }
-            }
-          }
-          case 1:
-            return res[1][0]
-        }
-      })(),
-    ]
-  )
-}
-
-const ruleIndexExprInternal = createAltRule(
-  createSeqRule(
-    ruleParrenExpr,
-    createConsTokenRule('puncBracketLeft'),
-    ruleIndexExpr,
-    createConsTokenRule('puncBracketRight'),
+    ([left, type, right]) => ({
+      type,
+      left,
+      right,
+    }),
   ),
-  createSeqRule(
-    ruleParrenExpr,
-    createConsTokenRule('puncParrenLeft'),
-    ruleTupleExpr,
-    createConsTokenRule('puncParrenRight'),
-  ),
-  createSeqRule(ruleParrenExpr, createConsTokenRule('puncDot'), ruleIndexExpr),
-  createSeqRule(ruleParrenExpr),
+  ruleNegExpr,
 )
-/**
- * @param {import("./types").TokenUnknown[]} tokens
- * @returns {[import("./types").TokenUnknown[], import("./types").NodeUnknown]?}
- */
-function ruleIndexExpr(tokens) {
-  const res = ruleIndexExprInternal(tokens)
-  return (
-    res && [
-      res[0],
-      (() => {
-        switch (res[1].length) {
-          case 4: {
-            switch (res[1][1]) {
-              default:
-                throw new Error('unreachable!')
-              case 'puncBracketLeft':
-                return {
-                  type: 'index',
-                  arr: res[1][0],
-                  index: res[1][2],
-                }
-              case 'puncParrenLeft':
-                return {
-                  type: 'call',
-                  fn: res[1][0],
-                  params: res[1][2].exprs || [res[1][2]],
-                }
-            }
-          }
-          case 3:
-            return {
-              type: 'member',
-              obj: res[1][0],
-              member: res[1][2],
-            }
-          case 1:
-            return res[1][0]
-        }
-      })(),
-    ]
-  )
+/** @type {import("./types").Parser} */
+function ruleMulExpr(tokens) {
+  return __ruleMulExpr(tokens)
 }
 
-/**
- * @param {import("./types").TokenUnknown[]} tokens
- * @returns {[import("./types").TokenUnknown[], import("./types").NodeUnknown]?}
- */
-function ruleParrenExpr(tokens) {
-  const res = createAltRule(
+/** @type {import("./types").Parser} */
+const __ruleNegExpr = createAltRule(
+  createTransRule(
+    createSeqRule(createConsTokenRule('opSub'), ruleNegExpr),
+    ([, expr]) => ({
+      type: 'neg',
+      expr,
+    }),
+  ),
+  createTransRule(
+    createSeqRule(createConsTokenRule('puncBang'), ruleNegExpr),
+    ([, expr]) => ({
+      type: 'not',
+      expr,
+    }),
+  ),
+  ruleIndexExpr,
+)
+/** @type {import("./types").Parser} */
+function ruleNegExpr(tokens) {
+  return __ruleNegExpr(tokens)
+}
+
+/** @type {import("./types").Parser} */
+const __ruleIndexExpr = createAltRule(
+  createTransRule(
+    createSeqRule(
+      ruleParrenExpr,
+      createConsTokenRule('puncBracketLeft'),
+      ruleIndexExpr,
+      createConsTokenRule('puncBracketRight'),
+    ),
+    ([arr, , index]) => ({
+      type: 'index',
+      arr,
+      index,
+    }),
+  ),
+  createTransRule(
+    createSeqRule(
+      ruleParrenExpr,
+      createConsTokenRule('puncParrenLeft'),
+      createTransRule(ruleTupleExpr, tuple =>
+        (() => {
+          switch (tuple.type) {
+            case 'tuple':
+              return [...tuple.exprs]
+            default:
+              return [tuple]
+          }
+        })(),
+      ),
+      createConsTokenRule('puncParrenRight'),
+    ),
+    ([fn, , params]) => ({
+      type: 'call',
+      fn,
+      params,
+    }),
+  ),
+  createTransRule(
+    createSeqRule(
+      ruleParrenExpr,
+      createConsTokenRule('puncDot'),
+      ruleIndexExpr,
+    ),
+    ([obj, , member]) => ({
+      type: 'member',
+      obj,
+      member,
+    }),
+  ),
+  ruleParrenExpr,
+)
+/** @type {import("./types").Parser} */
+function ruleIndexExpr(tokens) {
+  return __ruleIndexExpr(tokens)
+}
+
+/** @type {import("./types").Parser} */
+const __ruleParrenExpr = createAltRule(
+  createTransRule(
     createSeqRule(
       createConsTokenRule('puncParrenLeft'),
       ruleExpr,
       createConsTokenRule('puncParrenRight'),
     ),
-    createSeqRule(ruleTermExpr),
-  )(tokens)
-  return (
-    res && [
-      res[0],
-      (() => {
-        switch (res[1].length) {
-          case 3:
-            return {
-              type: 'parren',
-              expr: res[1][1],
-            }
-          case 1:
-            return res[1][0]
-        }
-      })(),
-    ]
-  )
+    ([, expr]) => ({
+      type: 'parren',
+      expr,
+    }),
+  ),
+  ruleTermExpr,
+)
+/** @type {import("./types").Parser} */
+function ruleParrenExpr(tokens) {
+  return __ruleParrenExpr(tokens)
 }
 
-/**
- * @param {import("./types").TokenUnknown[]} tokens
- * @returns {[import("./types").TokenUnknown[], import("./types").NodeUnknown]?}
- */
+/** @type {import("./types").Parser} */
+const __ruleTermExpr = createAltRule(ruleLiteralExpr, ruleIdentifierExpr)
+/** @type {import("./types").Parser} */
 function ruleTermExpr(tokens) {
-  let res
-  res = ruleLiteralExpr(tokens)
-  if (res) {
-    return [res[0], res[1]]
-  }
-  res = ruleIdentifierExpr(tokens)
-  if (res) {
-    return [res[0], res[1]]
-  }
-  return null
+  return __ruleTermExpr(tokens)
 }
 
-/**
- * @param {import("./types").TokenUnknown[]} tokens
- * @returns {[import("./types").TokenUnknown[], import("./types").NodeIdentifier]?}
- */
+/** @type {import("./types").Parser} */
+const __ruleIdentifierExpr = createTransRule(
+  createCapTokenRule('identifier'),
+  token => ({
+    type: 'identifier',
+    content: token.content,
+  }),
+)
+/** @type {import("./types").Parser} */
 function ruleIdentifierExpr(tokens) {
-  if (tokens.length > 0) {
-    switch (tokens[0].type) {
-      case 'identifier':
-        return [
-          tokens.slice(1),
-          {
-            type: 'identifier',
-            content: tokens[0].content,
-          },
-        ]
-      default:
-        return null
-    }
-  } else {
-    throw new ParseError('unexpected eof')
-  }
+  return __ruleIdentifierExpr(tokens)
 }
 
-/**
- * @param {import("./types").TokenUnknown[]} tokens
- * @returns {[import("./types").TokenUnknown[], import("./types").NodeUnknown]?}
- */
+/** @type {import("./types").Parser} */
+const __ruleLiteralExpr = createAltRule(
+  ruleLiteralBool,
+  ruleLiteralNumber,
+  ruleLiteralString,
+)
+/** @type {import("./types").Parser} */
 function ruleLiteralExpr(tokens) {
-  const res = createAltRule(
-    ruleLiteralBool,
-    ruleLiteralNumber,
-    ruleLiteralString,
-  )(tokens)
-  return res && [res[0], res[1]]
+  return __ruleLiteralExpr(tokens)
 }
-/**
- * @param {import("./types").TokenUnknown[]} tokens
- * @returns {[import("./types").TokenUnknown[], import("./types").NodeLiteralBool]?}
- */
+
+/** @type {import("./types").Parser} */
+const __ruleLiteralBool = createTransRule(
+  createCapTokenRule('literalBool'),
+  token => ({
+    type: 'literalBool',
+    val: token.content === 'true',
+  }),
+)
+/** @type {import("./types").Parser} */
 function ruleLiteralBool(tokens) {
-  if (tokens.length <= 0) {
-    throw new ParseError('unexpected eof')
-  }
-  switch (tokens[0].type) {
-    default:
-      return null
-    case 'literalBool':
-      return [
-        tokens.slice(1),
-        {
-          type: 'literalBool',
-          val: tokens[0].content == 'true' ? true : false,
-        },
-      ]
-  }
+  return __ruleLiteralBool(tokens)
 }
 
-/**
- * @param {import("./types").TokenUnknown[]} tokens
- * @returns {[import("./types").TokenUnknown[], import("./types").NodeUnknown]?}
- */
+/** @type {import("./types").Parser} */
+const __ruleLiteralString = createTransRule(
+  createCapTokenRule('literalString'),
+  token => ({
+    type: 'literalString',
+    content: token.content
+      .replaceAll(/(^("|'))|(("|')$)/g, '')
+      .replaceAll('\\\\', '\\')
+      .replaceAll(/\\"/g, '"')
+      .replaceAll(/\\'/g, "'"),
+  }),
+)
+/** @type {import("./types").Parser} */
 function ruleLiteralString(tokens) {
-  if (tokens.length <= 0) {
-    throw new ParseError('unexpected eof')
-  }
-  switch (tokens[0].type) {
-    case 'literalString':
-      return [
-        tokens.slice(1),
-        {
-          type: 'literalString',
-          content: tokens[0].content
-            .replace(/^("|')/, '')
-            .replace(/("|')$/, '')
-            .replaceAll('\\\\', '\\')
-            .replaceAll(/\\"/g, '"')
-            .replaceAll(/\\'/g, "'"),
-        },
-      ]
-    default:
-      return null
-  }
+  return __ruleLiteralString(tokens)
 }
 
-/**
- * @param {import("./types").TokenUnknown[]} tokens
- * @returns {[import("./types").TokenUnknown[], import("./types").NodeLiteralInt | import("./types").NodeLiteralFloat]?}
- */
+/** @type {import("./types").Parser} */
+const __ruleLiteralNumber = createAltRule(
+  createTransRule(createCapTokenRule('literalInt'), token => ({
+    type: 'literalInt',
+    content: token.content,
+  })),
+  createTransRule(createCapTokenRule('literalFloat'), token => ({
+    type: 'literalFloat',
+    content: token.content,
+  })),
+)
+/** @type {import("./types").Parser} */
 function ruleLiteralNumber(tokens) {
-  if (tokens.length > 0) {
-    switch (tokens[0].type) {
-      case 'literalInt':
-        return [
-          tokens.slice(1),
-          {
-            type: 'literalInt',
-            content: tokens[0].content,
-          },
-        ]
-      case 'literalFloat':
-        return [
-          tokens.slice(1),
-          {
-            type: 'literalFloat',
-            content: tokens[0].content,
-          },
-        ]
-      default:
-        return null
-    }
-  } else {
-    throw new ParseError('unexpected eof')
-  }
+  return __ruleLiteralNumber(tokens)
 }
 
 /**

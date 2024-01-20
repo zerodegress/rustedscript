@@ -4,7 +4,7 @@ export interface WithRange {
 }
 
 export interface WithAnnotation {
-  anno: NodeAnnotation
+  anno: NodeAnnotation[]
 }
 
 export interface NodeIdentifier {
@@ -212,6 +212,10 @@ export type NodeUnknown =
   | NodeAnnotation
   | NodeLiteralBool
 
+export interface Parser<T = NodeUnknown> {
+  (tokens: TokenUnknown[]): [TokenUnknown[], T] | null
+}
+
 export interface TokenKeywordLet {
   type: 'keywordLet'
 }
@@ -402,16 +406,30 @@ export type TokenUnknown =
   | TokenBlockComment
   | TokenLiteralBool
 
-export interface RwIni {
-  [secName: string]: RwIniSection
+export interface RWIni {
+  sections: RWIniSection[]
 }
 
-export interface RwIniSection {
-  [propKey: string]: string
+export interface RWIniSection {
+  name: string
+  props: [string, string][]
 }
 
-export interface RwiniCompileContext {
-  currentName: string
-  idMap?: Record<string, string>
-  preserveAssignLeft?: boolean
+export interface RWASM {
+  memories: Record<string, string>
+  externalMemories: Record<string, string>
+  externalActions: string[]
+  actions: RWASMAction[]
 }
+
+export interface RWASMAction {
+  name: string
+  instructions: RWASMInstruction[]
+}
+
+export interface RWASMInstructionSetMemory {
+  type: 'setmem'
+  sets: [string, string][]
+}
+
+export type RWASMInstruction = RWASMInstructionSetMemory

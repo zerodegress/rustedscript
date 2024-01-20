@@ -9,12 +9,19 @@ statement = expr, [puncSemi];
 annotation = puncAt, identifier, puncParrenLeft, [tupleExpr], puncParrenRight
   | puncAt, identifier;
 
+annotations = annotation, annotations
+  | annotation;
+
 functionDeclaration = keywordFn, identifier, puncParrenLeft, [tupleExpr], puncParrenRight, block;
 
-expr = functionDeclarationExpr
+expr = statementExpr
+  | computeExpr;
+
+statementExpr = functionDeclarationExpr
   | blockExpr
-  | bindDeclarationExpr
-  | tupleExpr;
+  | bindDeclarationExpr;
+
+computeExpr = tupleExpr;
 
 functionDeclarationExpr = functionDeclaration;
 

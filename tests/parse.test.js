@@ -72,6 +72,33 @@ describe('parse', () => {
     ])
   })
 
+  test('anno', () => {
+    expect(parse(tokenize('@type("string") let a'))).toEqual([
+      {
+        type: 'bindDeclaration',
+        bind: {
+          type: 'identifier',
+          content: 'a',
+        },
+        anno: [
+          {
+            type: 'annotation',
+            id: {
+              type: 'identifier',
+              content: 'type',
+            },
+            params: [
+              {
+                type: 'literalString',
+                content: 'string',
+              },
+            ],
+          },
+        ],
+      },
+    ])
+  })
+
   test('comment', () => {
     expect(parse(tokenize('// abc'))).toEqual([])
   })
