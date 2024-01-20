@@ -1,6 +1,6 @@
 {
   "name": "rustedscript",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "A compiler designed for Rusted Warfare.",
   "type": "module",
   "main": "index.js",
