@@ -67,13 +67,19 @@ mulExpr = negExpr, opMul, mulExpr
 negExpr = opSub, negExpr
   | puncBang, negExpr;
 
-indexExpr = parrenExpr, puncBracketLeft, indexExpr, puncBracketRight
-  | parrenExpr, puncParrenLeft, listExpr, puncParrenRight
+indexExpr = parrenExpr, puncBracketLeft, tupleExpr, puncBracketRight
+  | parrenExpr, puncParrenLeft, tupleExpr, puncParrenRight
   | parrenExpr, puncDot, indexExpr
   | parrenExpr;
 
-parrenExpr = termExpr
-  | puncParrenLeft, expr, puncParrenRight;
+parrenExpr = puncParrenLeft, expr, puncParrenRight
+  | blockExpr
+  | ifExpr
+  | termExpr;
+
+ifExpr = keywordIf, expr, blockExpr, keywordElse, ifExpr
+  | keywordIf, expr, blockExpr, keywordElse, blockExpr
+  | keywordIf, expr, blockExpr;
 
 termExpr = literalExpr
   | identifierExpr;

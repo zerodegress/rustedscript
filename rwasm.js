@@ -31,7 +31,7 @@ export function compile(asm) {
             props: [
               ['buildSpeed', '0'],
               ...(instructions.length > 1
-                ? [['alsoTriggerAction', `rwasmaction_${name}_0`]]
+                ? [['alsoQueueAction', `rwasmaction_${name}_0`]]
                 : []),
               ...(instructions.length > 0
                 ? compileInstruction(instructions[0])

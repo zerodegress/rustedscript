@@ -178,6 +178,13 @@ export interface NodeLiteralBool {
   val: bool
 }
 
+export interface NodeIf {
+  type: 'if'
+  cond: NodeUnknown
+  then: NodeBlock
+  elseThen?: NodeBlock | NodeIf
+}
+
 export type NodeUnknown =
   | NodeBlock
   | NodeFunctionDeclaration
@@ -211,6 +218,7 @@ export type NodeUnknown =
   | NodeParren
   | NodeAnnotation
   | NodeLiteralBool
+  | NodeIf
 
 export interface Parser<T = NodeUnknown> {
   (tokens: TokenUnknown[]): [TokenUnknown[], T] | null

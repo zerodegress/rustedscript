@@ -72,6 +72,68 @@ describe('parse', () => {
     ])
   })
 
+  test('block', () => {
+    expect(parse(tokenize('{}'))).toEqual([
+      {
+        type: 'block',
+        statements: [],
+      },
+    ])
+
+    expect(
+      parse(tokenize('if true { true } else if a == b { 1 } else { false }')),
+    ).toEqual([
+      {
+        type: 'if',
+        cond: {
+          type: 'literalBool',
+          val: true,
+        },
+        then: {
+          type: 'block',
+          statements: [
+            {
+              type: 'literalBool',
+              val: true,
+            },
+          ],
+        },
+        elseThen: {
+          type: 'if',
+          cond: {
+            type: 'eq',
+            left: {
+              type: 'identifier',
+              content: 'a',
+            },
+            right: {
+              type: 'identifier',
+              content: 'b',
+            },
+          },
+          then: {
+            type: 'block',
+            statements: [
+              {
+                type: 'literalInt',
+                content: '1',
+              },
+            ],
+          },
+          elseThen: {
+            type: 'block',
+            statements: [
+              {
+                type: 'literalBool',
+                val: false,
+              },
+            ],
+          },
+        },
+      },
+    ])
+  })
+
   test('anno', () => {
     expect(parse(tokenize('@type("string") let a'))).toEqual([
       {

@@ -255,7 +255,12 @@ function ruleExpr(tokens) {
 const __ruleStatementExpr = createTransRule(
   createSeqRule(
     createOptRule(ruleAnnotations),
-    createAltRule(ruleBlock, ruleFunctionDeclaration, ruleBindDeclarationExpr),
+    createAltRule(
+      ruleBlock,
+      ruleIfExpr,
+      ruleFunctionDeclaration,
+      ruleBindDeclarationExpr,
+    ),
   ),
   ([anno, stmt]) => ({
     ...stmt,
@@ -522,7 +527,7 @@ const __ruleIndexExpr = createAltRule(
     createSeqRule(
       ruleParrenExpr,
       createConsTokenRule('puncBracketLeft'),
-      ruleIndexExpr,
+      ruleTupleExpr,
       createConsTokenRule('puncBracketRight'),
     ),
     ([arr, , index]) => ({
@@ -585,11 +590,41 @@ const __ruleParrenExpr = createAltRule(
       expr,
     }),
   ),
+  ruleBlock,
+  ruleIfExpr,
   ruleTermExpr,
 )
 /** @type {import("./types").Parser} */
 function ruleParrenExpr(tokens) {
   return __ruleParrenExpr(tokens)
+}
+
+/** @type {import("./types").Parser} */
+const __ruleIfExpr = createTransRule(
+  createSeqRule(
+    createCapTokenRule('keywordIf'),
+    ruleExpr,
+    ruleBlock,
+    createOptRule(
+      createTransRule(
+        createSeqRule(
+          createCapTokenRule('keywordElse'),
+          createAltRule(ruleIfExpr, ruleBlock),
+        ),
+        ([, elseThen]) => elseThen,
+      ),
+    ),
+  ),
+  ([, cond, then, elseThen]) => ({
+    type: 'if',
+    cond,
+    then,
+    elseThen: elseThen || undefined,
+  }),
+)
+/** @type {import("./types").Parser} */
+function ruleIfExpr(tokens) {
+  return __ruleIfExpr(tokens)
 }
 
 /** @type {import("./types").Parser} */
