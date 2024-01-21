@@ -484,3 +484,7 @@ export interface RWASMCompileContext {
   scope: string
   idMap: Record<string, string>
 }
+
+export interface TokenizeOptions {
+  withRange?: boolean
+}

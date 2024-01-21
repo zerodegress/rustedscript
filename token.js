@@ -55,18 +55,26 @@ const TOKENS_REGEX = [
 /**
  * 分词
  * @param {string} src
+ * @param {import("./types").TokenizeOptions} [options]
  * @returns {import("./types").TokenUnknown[]}
  */
-export function tokenize(src) {
+export function tokenize(src, options) {
   /** @type {import("./types").TokenUnknown[]} */
   const tokens = []
+  let curOffset = 0
   while (src.length > 0) {
+    const oldSrc = src
     src = src.trimStart()
+    curOffset += oldSrc.length - src.length
     for (const [type, regex] of TOKENS_REGEX) {
       const res = regex.exec(src)
       if (res) {
         const token = {
           type,
+        }
+        if (options?.withRange) {
+          token.offset = curOffset
+          token.length = res[0].length
         }
         switch (type) {
           case 'identifier':
@@ -79,7 +87,6 @@ export function tokenize(src) {
           case 'lineComment':
           case 'blockComment':
             token.content = res[0]
-            src.replace(regex, '')
             break
           case 'unexpected':
             throw new TokenizeError('unexpected token')
@@ -93,6 +100,7 @@ export function tokenize(src) {
             break
         }
         src = src.replace(regex, '')
+        curOffset += res[0].length
         break
       }
     }
