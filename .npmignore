@@ -1,0 +1,11 @@
+/tests
+/examples
+node_modules
+.vscode
+.prettierrc
+.prettierignore
+eslint.config.js
+jest.config.js
+/rustedscript.ebnf
+/sample.ini
+/sample.rds
