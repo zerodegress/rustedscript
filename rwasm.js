@@ -41,24 +41,58 @@ export function compile(asm) {
             name: `hiddenAction_${name}`,
             props: [
               ['buildSpeed', '0'],
-              instructions.length > 1 && [
-                'alsoQueueAction',
-                `rwasmaction_${name}_0`,
-              ],
-              ...(instructions.length > 0
-                ? compileInstruction(instructions[0], name, index)
-                : []),
+              ...(() => {
+                const props = compileInstruction(instructions[0], name, index)
+                if (
+                  !props.find(
+                    prop =>
+                      prop[0] === 'alsoTriggerAction' ||
+                      prop[0] === 'alsoQueueAction',
+                  ) &&
+                  instructions.length > 1
+                ) {
+                  return [
+                    ...props,
+                    [
+                      index % 10 === 0
+                        ? 'alsoQueueAction'
+                        : 'alsoTriggerAction',
+                      `rwasmaction_${name}_0`,
+                    ],
+                  ]
+                } else {
+                  return props
+                }
+              })(),
             ].filter(x => x),
           },
           ...instructions.slice(1).map((inst, index, instructions) => ({
             name: `hiddenAction_rwasmaction_${name}_${index}`,
             props: [
               ['buildSpeed', '0'],
-              instructions.length > index + 1 && [
-                'alsoQueueAction',
-                `rwasmaction_${name}_${index + 1}`,
-              ],
-              ...compileInstruction(inst, name, index),
+              ...(() => {
+                const props = compileInstruction(inst, name, index)
+                if (
+                  !props.find(
+                    prop =>
+                      prop[0] === 'alsoTriggerAction' ||
+                      prop[0] === 'alsoQueueAction',
+                  ) &&
+                  instructions.length > 1
+                ) {
+                  return [
+                    ...props,
+                    [
+                      index % 10 === 0
+                        ? 'alsoQueueAction'
+                        : 'alsoTriggerAction',
+                      `rwasmaction_${name}_${index + 1}`,
+                    ],
+                  ]
+                } else {
+                  return props
+                }
+              })(),
             ].filter(x => x),
           })),
         ])
