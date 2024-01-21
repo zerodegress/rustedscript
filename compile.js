@@ -12,6 +12,7 @@ function randomId() {
     if (__randomIds.has(id)) {
       continue
     }
+    __randomIds.add(id)
     return id
   }
 }
