@@ -179,7 +179,7 @@ export function compile(nodes) {
           [],
           {
             ...ctx,
-            scope: `rwaction_${name}`,
+            scope: `rwasmaction_${name}`,
           },
         ]
         const [instructions] = node.block.statements.reduce(
