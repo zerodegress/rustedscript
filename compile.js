@@ -29,6 +29,14 @@ function compileComputeExpr(expr, ctx) {
     case 'mul':
     case 'div':
     case 'mod':
+    case 'and':
+    case 'or':
+    case 'eq':
+    case 'ne':
+    case 'gt':
+    case 'ge':
+    case 'lt':
+    case 'le':
       return `${compileComputeExpr(expr.left, ctx)}${(() => {
         switch (expr.type) {
           case 'add':
@@ -41,8 +49,26 @@ function compileComputeExpr(expr, ctx) {
             return '/'
           case 'mod':
             return '%'
+          case 'and':
+            return ' and '
+          case 'or':
+            return ' or '
+          case 'eq':
+            return '=='
+          case 'ne':
+            return '!='
+          case 'gt':
+            return '>'
+          case 'ge':
+            return '>='
+          case 'lt':
+            return '<'
+          case 'le':
+            return '<='
         }
       })()}${compileComputeExpr(expr.right, ctx)}`
+    case 'not':
+      return `not ${compileComputeExpr(expr.expr)}`
   }
 }
 
