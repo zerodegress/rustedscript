@@ -460,7 +460,25 @@ export interface RWASMInstructionSetMemory {
   sets: [string, string][]
 }
 
-export type RWASMInstruction = RWASMInstructionSetMemory
+export interface RWASMInstructionForkJump {
+  type: 'forkjump'
+  tos: number[]
+}
+
+export interface RWASMInstructionCond {
+  type: 'cond'
+  cond: string
+}
+
+export interface RWASMInstructionNop {
+  type: 'nop'
+}
+
+export type RWASMInstruction =
+  | RWASMInstructionSetMemory
+  | RWASMInstructionForkJump
+  | RWASMInstructionCond
+  | RWASMInstructionNop
 
 export interface RWASMCompileContext {
   scope: string

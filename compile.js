@@ -1,5 +1,15 @@
 export class RustedScriptCompileError extends Error {}
 
+/** @type {() => string} */
+function randomId() {
+  const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXFZ'
+  let id = ''
+  for (let i = 0; i < 6; i++) {
+    id += charset[Math.floor(Math.random() * charset.length)]
+  }
+  return id
+}
+
 /** @type {(expr: import("./types").NodeUnknown, ctx: import("./types").RWASMCompileContext) => string} */
 function compileComputeExpr(expr, ctx) {
   switch (expr.type) {
@@ -41,6 +51,53 @@ function compileStatement(stmt, ctx) {
   switch (stmt.type) {
     default:
       throw new RustedScriptCompileError('unsupported syntaxes')
+    case 'if': {
+      const [ifThenInsts] = compileStatement(stmt.then, ctx)
+      const [elseThenInsts] = stmt.elseThen
+        ? compileStatement(stmt.elseThen, ctx)
+        : [[], ctx]
+      return [
+        [
+          {
+            type: 'forkjump',
+            tos: [1, 1 + ifThenInsts.length + 2],
+          },
+          {
+            type: 'cond',
+            cond: compileComputeExpr(stmt.cond, ctx),
+          },
+          ...ifThenInsts,
+          {
+            type: 'forkjump',
+            tos: [1 + elseThenInsts.length + 1],
+          },
+          {
+            type: 'cond',
+            cond: `not (${compileComputeExpr(stmt.cond, ctx)})`,
+          },
+          ...elseThenInsts,
+          {
+            type: 'nop',
+          },
+        ],
+        ctx,
+      ]
+    }
+    case 'block': {
+      /** @type {import("./types").RWASMCompileContext} */
+      const nCtx = {
+        ...ctx,
+        scope: `${ctx.scope}_${randomId()}`,
+      }
+      const [insts] = stmt.statements.reduce(
+        ([insts, ctx], stmt) => {
+          const [nInsts, nCtx] = compileStatement(stmt, ctx)
+          return [[...insts, ...nInsts], nCtx]
+        },
+        [[], nCtx],
+      )
+      return [insts, ctx]
+    }
     case 'assign':
       switch (stmt.left.type) {
         default:
