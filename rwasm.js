@@ -11,12 +11,12 @@ function compileInstruction(inst, action, index) {
     case 'forkjump':
       return [
         [
-          'alsoTriggerAction',
+          'alsoQueueAction',
           inst.tos.map(to => `rwasmaction_${action}_${index + to}`).join(','),
         ],
       ]
     case 'cond':
-      return [['alsoTriggerOrQueueActionConditional', inst.cond]]
+      return [['alsoTriggerOrQueueActionConditional', `if ${inst.cond}`]]
     case 'nop':
       return []
   }
@@ -42,7 +42,7 @@ export function compile(asm) {
             props: [
               ['buildSpeed', '0'],
               instructions.length > 1 && [
-                'alsoTriggerAction',
+                'alsoQueueAction',
                 `rwasmaction_${name}_0`,
               ],
               ...(instructions.length > 0
@@ -55,7 +55,7 @@ export function compile(asm) {
             props: [
               ['buildSpeed', '0'],
               instructions.length > index + 1 && [
-                'alsoTriggerAction',
+                'alsoQueueAction',
                 `rwasmaction_${name}_${index + 1}`,
               ],
               ...compileInstruction(inst, name, index),
