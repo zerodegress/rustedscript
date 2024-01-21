@@ -2,9 +2,11 @@
 
 fn test() {
   a = a + 1
-  if(a > 1) {
+  if a > 1 {
     a = a - 1
-  } else {
+  } else if a < 1 {
     a = a + 1
+  } else {
+    a = a * 2
   }
 }
