@@ -1,13 +1,19 @@
 export class RustedScriptCompileError extends Error {}
 
+const __randomIds = new Set()
 /** @type {() => string} */
 function randomId() {
   const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXFZ'
-  let id = ''
-  for (let i = 0; i < 6; i++) {
-    id += charset[Math.floor(Math.random() * charset.length)]
+  for (;;) {
+    let id = ''
+    for (let i = 0; i < 6; i++) {
+      id += charset[Math.floor(Math.random() * charset.length)]
+    }
+    if (__randomIds.has(id)) {
+      continue
+    }
+    return id
   }
-  return id
 }
 
 /** @type {(expr: import("./types").NodeUnknown, ctx: import("./types").RWASMCompileContext) => string} */
@@ -17,6 +23,8 @@ function compileComputeExpr(expr, ctx) {
       throw new RustedScriptCompileError('unsupported syntaxes')
     case 'identifier':
       return ctx.idMap[expr.content]
+    case 'literalString':
+      return `'${expr.content.replaceAll('\\', '\\\\').replaceAll("'", "\\'")}'`
     case 'literalInt':
     case 'literalFloat':
       return expr.content
