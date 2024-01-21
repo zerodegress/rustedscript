@@ -4,6 +4,7 @@
   "description": "A compiler designed for Rusted Warfare.",
   "type": "module",
   "main": "index.js",
+  "types": "index.d.ts",
   "bin": {
     "rdsc": "bin/rdsc.js"
   },
