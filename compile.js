@@ -3,7 +3,7 @@ export class RustedScriptCompileError extends Error {}
 const __randomIds = new Set()
 /** @type {() => string} */
 function randomId() {
-  const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXFZ'
+  const charset = 'abcdefghijklmnopqrstuvwxyz'
   for (;;) {
     let id = ''
     for (let i = 0; i < 6; i++) {
