@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-import readline from 'readline'
-import process from 'process'
-import console from 'console'
+import readline from 'node:readline'
+import process from 'node:process'
+import console from 'node:console'
 import { compile } from '../index.js'
 
 const rl = readline.createInterface({
