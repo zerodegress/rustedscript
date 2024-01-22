@@ -2,6 +2,10 @@
 
 为编写更简单的Rusted Warfare的模组代码设计的编译器
 
+## 在线尝试
+
+[RustedScript在线编译](https://rdsc.zerodegress.ink)
+
 ## 安装
 ```sh
 $ npm install -g rustedscript
