@@ -50,6 +50,13 @@ describe('rwasm', () => {
           name: 'hiddenAction_abc',
           props: [
             ['buildSpeed', '0'],
+            ['alsoTriggerAction', 'rwasmaction_abc_0'],
+          ],
+        },
+        {
+          name: 'hiddenAction_rwasmaction_abc_0',
+          props: [
+            ['buildSpeed', '0'],
             ['setUnitMemory', 'a=memory.a+1'],
           ],
         },

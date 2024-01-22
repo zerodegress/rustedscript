@@ -38,37 +38,15 @@ export function compile(asm) {
         ],
       },
       ...asm.actions
-        .map(({ name, instructions }, index) => [
+        .map(({ name, instructions }) => [
           {
             name: `hiddenAction_${name}`,
             props: [
               ['buildSpeed', '0'],
-              ...(() => {
-                const props = compileInstruction(instructions[0], name, index)
-                if (
-                  !props.find(
-                    prop =>
-                      prop[0] === 'alsoTriggerAction' ||
-                      prop[0] === 'alsoQueueAction',
-                  ) &&
-                  instructions.length > 1
-                ) {
-                  return [
-                    ...props,
-                    [
-                      index % 10 === 0
-                        ? 'alsoQueueAction'
-                        : 'alsoTriggerAction',
-                      `rwasmaction_${name}_0`,
-                    ],
-                  ]
-                } else {
-                  return props
-                }
-              })(),
+              ['alsoTriggerAction', `rwasmaction_${name}_0`],
             ].filter(x => x),
           },
-          ...instructions.slice(1).map((inst, index, instructions) => ({
+          ...instructions.map((inst, index, instructions) => ({
             name: `hiddenAction_rwasmaction_${name}_${index}`,
             props: [
               ['buildSpeed', '0'],
@@ -80,7 +58,7 @@ export function compile(asm) {
                       prop[0] === 'alsoTriggerAction' ||
                       prop[0] === 'alsoQueueAction',
                   ) &&
-                  instructions.length > 1
+                  instructions.length - index > 1
                 ) {
                   return [
                     ...props,

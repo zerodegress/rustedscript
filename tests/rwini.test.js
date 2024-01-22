@@ -28,7 +28,7 @@ describe('rwini', () => {
         ),
       ),
     ).toBe(
-      '[core]\n@memory a:number\n[hiddenAction_abc]\nbuildSpeed:0\nsetUnitMemory:a=memory.a+1\n',
+      '[core]\n@memory a:number\n[hiddenAction_abc]\nbuildSpeed:0\nalsoTriggerAction:rwasmaction_abc_0\n[hiddenAction_rwasmaction_abc_0]\nbuildSpeed:0\nsetUnitMemory:a=memory.a+1\n',
     )
     expect(
       compileToString(
@@ -45,7 +45,7 @@ describe('rwini', () => {
         ),
       ),
     ).toBe(
-      '[core]\n@memory a:number\n[hiddenAction_abc]\nbuildSpeed:0\nsetUnitMemory:a=memory.a+1,a=memory.a*2\n',
+      '[core]\n@memory a:number\n[hiddenAction_abc]\nbuildSpeed:0\nalsoTriggerAction:rwasmaction_abc_0\n[hiddenAction_rwasmaction_abc_0]\nbuildSpeed:0\nsetUnitMemory:a=memory.a+1,a=memory.a*2\n',
     )
   })
 })
