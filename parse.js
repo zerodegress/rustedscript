@@ -2,6 +2,17 @@ export class IgnorableParseError extends Error {}
 export class ParseError extends Error {}
 
 /**
+ *
+ * @param {string} msg
+ * @returns {() => never}
+ */
+function createErrorRule(msg) {
+  return () => {
+    throw new ParseError(msg)
+  }
+}
+
+/**
  * @param {import("./types").TokenUnknown['type']} type
  */
 function createCapTokenRule(type) {
@@ -115,18 +126,17 @@ function createConsTokenRule(type) {
   return createTransRule(createCapTokenRule(type), token => token.type)
 }
 
-/**
- * @param {import("./types").TokenUnknown[]} tokens
- * @returns {[import("./types").TokenUnknown[], import("./types").NodeUnknown]?}
- */
+/** @type {import("./types").Parser} */
+const __ruleStatement = createTransRule(
+  createSeqRule(ruleExpr, createOptRule(createConsTokenRule('puncSemi'))),
+  ([expr]) => expr,
+)
+/** @type {import("./types").Parser} */
 function ruleStatement(tokens) {
-  const res = createSeqRule(
-    ruleExpr,
-    createOptRule(createConsTokenRule('puncSemi')),
-  )(tokens)
-  return res && [res[0], res[1][0]]
+  return __ruleStatement(tokens)
 }
 
+/** @type {import("./types").Parser} */
 const __ruleStatements = createAltRule(
   createTransRule(
     createSeqRule(ruleStatement, ruleStatements),
@@ -134,40 +144,32 @@ const __ruleStatements = createAltRule(
   ),
   createSeqRule(ruleStatement),
 )
-/**
- * @param {import("./types").TokenUnknown[]} tokens
- * @returns {[import("./types").TokenUnknown[], import("./types").NodeUnknown[]]?}
- */
+/** @type {import("./types").Parser<import("./types").NodeUnknown[]>} */
 function ruleStatements(tokens) {
   return __ruleStatements(tokens)
 }
 
-/**
- * @param {import("./types").TokenUnknown[]} tokens
- * @returns {[import("./types").TokenUnknown[], import("./types").NodeBlock]?}
- */
-function ruleBlock(tokens) {
-  const res = createSeqRule(
+/** @type {import("./types").Parser} */
+const __ruleBlock = createTransRule(
+  createSeqRule(
     createConsTokenRule('puncBraceLeft'),
     createOptRule(ruleStatements),
     createAltRule(
       createConsTokenRule('puncBraceRight'),
-      createTransRule(createSeqRule(), () => {
-        throw new ParseError('unclosed "{"')
-      }),
+      createErrorRule('unclosed "{"'),
     ),
-  )(tokens)
-  return (
-    res && [
-      res[0],
-      {
-        type: 'block',
-        statements: res[1][1] || [],
-      },
-    ]
-  )
+  ),
+  ([, stmts]) => ({
+    type: 'block',
+    statements: stmts || [],
+  }),
+)
+/** @type {import("./types").Parser} */
+function ruleBlock(tokens) {
+  return __ruleBlock(tokens)
 }
 
+/** @type {import("./types").Parser} */
 const __ruleAnnotation = createAltRule(
   createTransRule(
     createSeqRule(
@@ -189,9 +191,7 @@ const __ruleAnnotation = createAltRule(
       ),
       createAltRule(
         createCapTokenRule('puncParrenRight'),
-        createTransRule(createSeqRule(), () => {
-          throw new ParseError('unclosed "("')
-        }),
+        createErrorRule('unclosed "("'),
       ),
     ),
     ([, id, , params]) => ({
@@ -209,10 +209,7 @@ const __ruleAnnotation = createAltRule(
     }),
   ),
 )
-/**
- * @param {import("./types").TokenUnknown[]} tokens
- * @returns {[import("./types").TokenUnknown[], import("./types").NodeAnnotation]?}
- */
+/** @type {import("./types").Parser} */
 function ruleAnnotation(tokens) {
   return __ruleAnnotation(tokens)
 }
@@ -242,9 +239,7 @@ function ruleFunctionDeclaration(tokens) {
     createOptRule(ruleTupleExpr),
     createAltRule(
       createConsTokenRule('puncParrenRight'),
-      createTransRule(createSeqRule(), () => {
-        throw new ParseError('unclosed "("')
-      }),
+      createErrorRule('unclosed "("'),
     ),
     ruleBlock,
   )(tokens)
@@ -547,9 +542,7 @@ const __ruleIndexExpr = createAltRule(
       ruleTupleExpr,
       createAltRule(
         createConsTokenRule('puncBracketRight'),
-        createTransRule(createSeqRule(), () => {
-          throw new ParseError('unclosed "["')
-        }),
+        createTransRule('unclosed "["'),
       ),
     ),
     ([arr, , index]) => ({
@@ -574,9 +567,7 @@ const __ruleIndexExpr = createAltRule(
       ),
       createAltRule(
         createConsTokenRule('puncParrenRight'),
-        createTransRule(createSeqRule(), () => {
-          throw new ParseError('unclosed "("')
-        }),
+        createErrorRule('unclosed "("'),
       ),
     ),
     ([fn, , params]) => ({
@@ -612,9 +603,7 @@ const __ruleParrenExpr = createAltRule(
       ruleExpr,
       createAltRule(
         createConsTokenRule('puncParrenRight'),
-        createTransRule(createSeqRule(), () => {
-          throw new ParseError('unclosed "("')
-        }),
+        createErrorRule('unclosed "("'),
       ),
     ),
     ([, expr]) => ({
