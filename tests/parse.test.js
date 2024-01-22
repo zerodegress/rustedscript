@@ -72,6 +72,24 @@ describe('parse', () => {
     ])
   })
 
+  test('tuple', () => {
+    expect(parse(tokenize('a, b'))).toEqual([
+      {
+        type: 'tuple',
+        exprs: [
+          {
+            type: 'identifier',
+            content: 'a',
+          },
+          {
+            type: 'identifier',
+            content: 'b',
+          },
+        ],
+      },
+    ])
+  })
+
   test('block', () => {
     expect(parse(tokenize('{}'))).toEqual([
       {

@@ -325,7 +325,16 @@ const __ruleTupleExpr = createAltRule(
     ),
     ([expr, , tuple]) => ({
       type: 'tuple',
-      exprs: [expr, ...(tuple?.exprs || [])],
+      exprs: [
+        expr,
+        ...(() => {
+          if (tuple.type === 'tuple') {
+            return tuple.exprs
+          } else {
+            return [tuple]
+          }
+        })(),
+      ],
     }),
   ),
   createTransRule(
@@ -743,6 +752,6 @@ export function parse(tokens) {
   if (res) {
     return res
   } else {
-    throw ParseError('not valid rustedscript')
+    throw new ParseError('not valid rustedscript')
   }
 }

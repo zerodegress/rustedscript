@@ -2,6 +2,7 @@
 
 fn test() {
   a = a + 1
+  __asm_code('debugMessage', 'hello world')
   if a > 1 {
     a = a - 1
   } else if a < 1 {

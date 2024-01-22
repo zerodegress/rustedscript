@@ -1,6 +1,8 @@
 /** @type {(asm: import("./types").RWASMInstruction, action: string, index: number) => [string, string][]} */
 function compileInstruction(inst, action, index) {
   switch (inst.type) {
+    case 'code':
+      return [...inst.props]
     case 'setmem':
       return [
         [

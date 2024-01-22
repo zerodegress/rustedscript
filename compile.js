@@ -1,5 +1,14 @@
 export class RustedScriptCompileError extends Error {}
 
+/** @type {(str: string) => string} */
+function deserializeLiteralString(str) {
+  return str
+    .replaceAll(/(^('|"))|(('|")$)/g)
+    .replaceAll('\\"', '"')
+    .replaceAll("\\'", "'")
+    .replaceAll('\\\\', '\\')
+}
+
 const __randomIds = new Set()
 /** @type {() => string} */
 function randomId() {
@@ -86,6 +95,39 @@ function compileStatement(stmt, ctx) {
   switch (stmt.type) {
     default:
       throw new RustedScriptCompileError('unsupported syntaxes')
+    case 'call': {
+      switch (stmt.fn.type) {
+        default:
+          throw new RustedScriptCompileError('unsupported syntaxes')
+        case 'identifier':
+          switch (stmt.fn.content) {
+            default:
+              throw new RustedScriptCompileError('unsupported syntaxes')
+            case '__asm_code':
+              if (
+                stmt.params.length < 2 ||
+                stmt.params[0].type !== 'literalString' ||
+                stmt.params[1].type !== 'literalString'
+              ) {
+                throw new RustedScriptCompileError('unsupported syntaxes')
+              }
+              return [
+                [
+                  {
+                    type: 'code',
+                    props: [
+                      [
+                        deserializeLiteralString(stmt.params[0].content),
+                        deserializeLiteralString(stmt.params[1].content),
+                      ],
+                    ],
+                  },
+                ],
+                ctx,
+              ]
+          }
+      }
+    }
     case 'if': {
       const [ifThenInsts] = compileStatement(stmt.then, ctx)
       const [elseThenInsts] = stmt.elseThen

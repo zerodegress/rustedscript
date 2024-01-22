@@ -474,11 +474,17 @@ export interface RWASMInstructionNop {
   type: 'nop'
 }
 
+export interface RWASMInstructionCode {
+  type: 'code'
+  props: [string, string][]
+}
+
 export type RWASMInstruction =
   | RWASMInstructionSetMemory
   | RWASMInstructionForkJump
   | RWASMInstructionCond
   | RWASMInstructionNop
+  | RWASMInstructionCode
 
 export interface RWASMCompileContext {
   scope: string
