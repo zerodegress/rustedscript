@@ -38,8 +38,8 @@ const TOKENS_REGEX = [
   ['opMul', /^\*/],
   ['opDiv', /^\//],
   ['opMod', /^%/],
-  ['literalFloat', /^[0-9]+\.[0-9]+/],
-  ['literalInt', /^[0-9]+/],
+  ['literalFloat', /^(\+|-)?[0-9]+\.[0-9]+/],
+  ['literalInt', /^(\+|-)?[0-9]+/],
   [
     'literalBool',
     /^(true|false)((?=[-()[\]{}\\/.,<>;:'"\\|`~!@#$%^&*?+=\s])|$)/,
