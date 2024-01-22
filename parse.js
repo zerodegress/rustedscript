@@ -227,33 +227,37 @@ function ruleAnnotations(tokens) {
   return __ruleAnnotations(tokens)
 }
 
-/**
- * @param {import("./types").TokenUnknown[]} tokens
- * @returns {[import("./types").TokenUnknown[], import("./types").NodeFunctionDeclaration]?}
- */
-function ruleFunctionDeclaration(tokens) {
-  const res = createSeqRule(
+/** @type {import("./types").Parser} */
+const __ruleFunctionDeclaration = createTransRule(
+  createSeqRule(
     createConsTokenRule('keywordFn'),
-    ruleIdentifierExpr,
-    createConsTokenRule('puncParrenLeft'),
-    createOptRule(ruleTupleExpr),
     createAltRule(
-      createConsTokenRule('puncParrenRight'),
-      createErrorRule('unclosed "("'),
+      createTransRule(
+        createSeqRule(
+          ruleIdentifierExpr,
+          createConsTokenRule('puncParrenLeft'),
+          createOptRule(ruleTupleExpr),
+          createAltRule(
+            createConsTokenRule('puncParrenRight'),
+            createErrorRule('unclosed "("'),
+          ),
+          ruleBlock,
+        ),
+        ([identifier, , tuple, , block]) => ({
+          type: 'functionDeclaration',
+          identifier,
+          params: tuple ? (tuple.type === 'tuple' ? tuple.exprs : [tuple]) : [],
+          block,
+        }),
+      ),
+      createErrorRule('expected identifier'),
     ),
-    ruleBlock,
-  )(tokens)
-  return (
-    res && [
-      res[0],
-      {
-        type: 'functionDeclaration',
-        identifier: res[1][1],
-        params: res[1][3]?.exprs || [res[1][3]] || [],
-        block: res[1][5],
-      },
-    ]
-  )
+  ),
+  ([, fn]) => fn,
+)
+/** @type {import("./types").Parser} */
+function ruleFunctionDeclaration(tokens) {
+  return __ruleFunctionDeclaration(tokens)
 }
 
 /** @type {import("./types").Parser} */
@@ -624,13 +628,17 @@ function ruleParrenExpr(tokens) {
 const __ruleIfExpr = createTransRule(
   createSeqRule(
     createCapTokenRule('keywordIf'),
-    ruleExpr,
+    createAltRule(ruleExpr, createErrorRule('expected expression')),
     ruleBlock,
     createOptRule(
       createTransRule(
         createSeqRule(
           createCapTokenRule('keywordElse'),
-          createAltRule(ruleIfExpr, ruleBlock),
+          createAltRule(
+            ruleIfExpr,
+            ruleBlock,
+            createErrorRule('expected "if" or block'),
+          ),
         ),
         ([, elseThen]) => elseThen,
       ),
